@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Sign Up - OD</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Anton&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#F2EBE1',
+                        primary: '#000000',
+                        'on-background': '#FFFFFF',
+                        'on-surface-variant': '#6B7280',
+                        'error-container': '#F87171',
+                        'on-error-container': '#450a0a',
+                    },
+                    fontFamily: {
+                        display: ['Anton', 'Arial Black', 'sans-serif'],
+                        body: ['Arial', 'Helvetica', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style data-purpose="custom-inputs">
+        .input-field {
+            width: 100%;
+            background-color: transparent !important;
+            background: transparent !important;
+            border: none;
+            border-bottom: 1px solid #000;
+            padding: 0.5rem 0;
+            font-size: 1rem;
+            outline: none;
+            box-shadow: none !important;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            border-bottom-width: 2px;
+            border-bottom-color: #000;
+            outline: none;
+            box-shadow: none !important;
+            background-color: transparent !important;
+        }
+
+        /* Prevent browser autofill from adding a solid background color */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus {
+            -webkit-text-fill-color: #000;
+            -webkit-box-shadow: 0 0 0px 1000px #F2EBE1 inset;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+    </style>
+</head>
+
+<body class="bg-background text-primary font-body min-h-screen flex flex-col relative">
+    <!-- Close Icon (Absolute positioned based on image) -->
+    <button aria-label="Close" class="absolute top-8 right-8 text-primary hover:opacity-70 transition-opacity">
+        <svg class="w-10 h-10 font-thin" fill="none" stroke="currentColor" stroke-width="1.5" viewbox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+    </button>
+    <!-- BEGIN: TopAppBar -->
+    <header class="w-full top-0 sticky bg-background border-none px-6 py-4 max-w-7xl mx-auto z-10 hidden"
+        data-purpose="top-app-bar">
+        <div class="flex justify-between items-center">
+            <!-- Brand Logo -->
+            <a class="font-display text-2xl text-primary tracking-tighter" href="#">OD</a>
+            <!-- Navigation Links (Hidden on small screens, adjust as needed) -->
+            <nav class="hidden md:flex gap-6 items-center">
+                <a class="text-primary hover:text-gray-600 transition-colors duration-200 font-bold" href="#">Home</a>
+                <a class="text-primary hover:text-gray-600 transition-colors duration-200" href="#">Eatables</a>
+                <a class="text-primary hover:text-gray-600 transition-colors duration-200" href="#">Wearables</a>
+                <a class="text-primary hover:text-gray-600 transition-colors duration-200" href="#">About</a>
+                <a class="text-primary hover:text-gray-600 transition-colors duration-200" href="#">Contact</a>
+                <a class="text-primary hover:text-gray-600 transition-colors duration-200" href="#">Blog</a>
+            </nav>
+            <!-- Trailing Actions -->
+            <div class="flex items-center gap-4">
+                <a class="text-primary hover:text-gray-600 transition-colors duration-200 font-medium" href="#">Log
+                    In</a>
+                <button aria-label="Shopping Bag"
+                    class="text-primary hover:text-gray-600 transition-colors duration-200">
+                    <span class="material-symbols-outlined">shopping_bag</span>
+                </button>
+            </div>
+        </div>
+    </header>
+    <!-- END: TopAppBar -->
+    <!-- BEGIN: Main Content -->
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="w-full max-w-sm flex flex-col items-center">
+            <!-- Heading -->
+            <h1 class="inline-block font-display text-5xl md:text-6xl mb-10 text-center scale-x-[1.4] origin-center">
+                Sign Up
+            </h1>
+
+            <!-- Signup Form -->
+            <form action="#" class="w-full flex flex-col gap-6" method="POST">
+                <!-- First Name -->
+                <div class="relative">
+                    <input class="input-field placeholder-gray-500" id="firstName" name="firstName"
+                        placeholder="First Name" required type="text" />
+                </div>
+                <!-- Last Name -->
+                <div class="relative">
+                    <input class="input-field placeholder-gray-500" id="lastName" name="lastName"
+                        placeholder="Last Name" required type="text" />
+                </div>
+                <!-- Email -->
+                <div class="relative">
+                    <input class="input-field placeholder-gray-500" id="email" name="email" placeholder="Email" required
+                        type="email" />
+                </div>
+                <!-- Password -->
+                <div class="relative">
+                    <input class="input-field placeholder-gray-500" id="password" name="password" placeholder="Password"
+                        required type="password" />
+                </div>
+                <!-- Submit Button -->
+                <button
+                    class="w-full bg-black text-white font-semibold py-3 mt-4 hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
+                    type="submit">
+                    Sign up
+                </button>
+            </form>
+            <!-- Login Link -->
+            <div class="mt-4 text-center text-sm">
+                <span class="text-gray-600">Already a member?</span>
+                <a class="font-bold text-black hover:underline" href="login.html">Log In</a>
+            </div>
+        </div>
+    </main>
+    <!-- END: Main Content -->
+</body>
+
+</html>

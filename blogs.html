@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Blog Archive</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#F2EBE1',
+                        'brand-bg': '#F2EBE1',
+                        'brand-text': '#333333',
+                        'brand-accent': '#E57373',
+                        'brand-card-bg': '#FDFCFB',
+                        'brand-gray': '#757575',
+                        'brand-border': '#E0DCD6'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                        'display': ['Anton', 'Arial Black', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style data-purpose="custom-styles">
+        body {
+            background-color: #F2EBE1;
+            color: #333333;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased min-h-screen bg-[#F2EBE1]">
+    <!-- BEGIN: MainHeader -->
+    <header class="py-6 px-8 flex items-center justify-between max-w-7xl mx-auto" data-purpose="site-header">
+        <!-- Logo -->
+        <div class="flex items-center" data-purpose="logo">
+            <div
+                class="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-400 to-blue-500 flex items-center justify-center font-bold text-lg border border-gray-800">
+                OD
+            </div>
+        </div>
+        <!-- Navigation -->
+        <nav class="hidden md:flex space-x-8 text-sm font-medium" data-purpose="main-nav">
+            <a class="hover:text-brand-accent transition-colors" href="#">Home</a>
+            <a class="hover:text-brand-accent transition-colors" href="#">Eatables</a>
+            <a class="hover:text-brand-accent transition-colors" href="#">Wearables</a>
+            <a class="hover:text-brand-accent transition-colors" href="#">About</a>
+            <a class="hover:text-brand-accent transition-colors" href="#">Contact</a>
+            <a class="text-brand-accent" href="#">Blog</a>
+        </nav>
+        <!-- User Actions -->
+        <div class="flex items-center space-x-6 text-sm font-medium" data-purpose="user-actions">
+            <a href="login.html" class="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                </svg>
+                <span>Log In</span>
+            </a>
+            <button class="relative hover:opacity-80 transition-opacity">
+                <svg class="h-6 w-6 text-indigo-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="2"></path>
+                </svg>
+                <span
+                    class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/4 text-[10px] font-bold text-gray-800">0</span>
+            </button>
+        </div>
+    </header>
+    <!-- END: MainHeader -->
+    <!-- BEGIN: MainContent -->
+    <main class="max-w-5xl mx-auto px-6 py-8" data-purpose="main-content">
+        <!-- Top Bar -->
+        <div class="flex items-center justify-between mb-8" data-purpose="content-top-bar">
+            <h1 class="text-xl font-medium text-brand-accent">All Posts</h1>
+            <button class="text-gray-600 hover:text-black">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="2"></path>
+                </svg>
+            </button>
+        </div>
+        <!-- Blog Posts Container -->
+        <div class="space-y-8 bg-[#EAE2D8] p-8 rounded-sm" data-purpose="blog-posts-list">
+            <!-- Post 1 -->
+            <article class="bg-brand-card-bg flex flex-col md:flex-row h-[400px] overflow-hidden shadow-sm">
+                <div class="md:w-[55%] h-full bg-[#82915F] relative">
+                    <!-- Using placeholder image as requested -->
+                    <img alt="Benefits of CBD Illustration"
+                        class="w-full h-full object-cover mix-blend-multiply opacity-80"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuChBp1161jdzUj3C7bTYpt7e0ZMUkLBcpTvgazZ0cMHMMqg9d-rM5LMJFJi3jgyq_wPbrnERXAkp3sF0Swz9XJIz13lvSHVRHdFjU7Xj7UtCajN2LSk4PjQYLrGv-MDtI2A5Z68E6ZMpxQH_2p7REyLN8mJJWJfSa2XSTe2DYd1isosS5Zudp6NgvGx_WMpbzQGIT0o0W1Np9TrPAVYUBH2uM8elsaB7kolq0oi-pzGqB8pJbiVwvud" />
+                    <div
+                        class="absolute inset-0 flex flex-col items-center justify-end pb-12 text-white font-display text-center uppercase tracking-widest text-lg px-8 scale-x-[1.4] origin-center">
+                        <p>You are now entering</p>
+                        <p>A new state of mind...</p>
+                    </div>
+                </div>
+                <div class="md:w-[45%] p-10 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center space-x-3">
+                                <img alt="Author" class="w-8 h-8 rounded-full"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtk7J7MwHmiVv04LaeOzTWWYNY0f8PC3GdpIuFJg0H9KKk4iJ7jQQ3kXHznkKd-EH0rPOniK9i56U7oCgPYAIvfvmIJeHrgPaIJehDzpvss3fHAJ2kb2Tss0o8pUv9rPEFBbHBF-VhN74ia1a5vbPTXrGI4O81kOKGM1pDyuRLimtIjHlQFiCgMD7-ez9phgH02GSzuKwXWqPBlXeDNXU-fTZxFgfZ-1uTF9ecvgL34Ro3ASRrV0tJ" />
+                                <div class="text-xs text-brand-gray">
+                                    <p class="font-medium text-gray-800">Shai Clark</p>
+                                    <p>Mar 23, 2021 · 2 min read</p>
+                                </div>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path
+                                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <h2
+                            class="inline-block font-display text-3xl md:text-4xl uppercase leading-[1.1] mb-4 text-[#2A2A2A] scale-x-[1.4] origin-left">
+                            Benefits of CBD, According to Medical Research
+                        </h2>
+                        <p class="text-brand-gray text-sm leading-relaxed mb-4 line-clamp-3">
+                            Over time, people are finding new, holistic approaches to treat any ailments, conditions, or
+                            pain. From chronic pain to headaches,...
+                        </p>
+                    </div>
+                    <div>
+                        <div class="h-px bg-brand-border w-full mb-4"></div>
+                        <div class="flex items-center justify-between text-xs text-brand-gray">
+                            <div class="flex space-x-4">
+                                <span>4,711 views</span>
+                                <span>20 comments</span>
+                            </div>
+                            <div class="flex items-center space-x-1 text-brand-accent">
+                                <span>28</span>
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path
+                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            <!-- Post 2 -->
+            <article class="bg-brand-card-bg flex flex-col md:flex-row h-[400px] overflow-hidden shadow-sm">
+                <div class="md:w-[55%] h-full bg-[#FDFCFB] border-r border-brand-border">
+                    <img alt="What is CBD Diagram" class="w-full h-full object-cover"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXhdk2REsP6mTTLk5NjcmBPRCUCxWHRhjUIXWm-8IjetWFdSi9LdNJvyShGSVbJ5n12d1a_oot9oRxsomWuvE_GPUFUNgUlsVHThvOWmhBDPrLHMNKEVU7-E14kDYWbaXx3O-RHqvs-eAeS1feIUO0qlLt7JolwzHFkH31GxXL5STDkSItQYqxx13Ea5T2qmjfDzH_K9ZlX46buenKTnVjVtpeM4SOLgHvWvu5BnnIMHFgOPA17gjD" />
+                </div>
+                <div class="md:w-[45%] p-10 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center space-x-3">
+                                <img alt="Author" class="w-8 h-8 rounded-full"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGd91ZHvduPXyhKtVp_oZH0x5kyIlGcaMbWHxR3INYPWhSi1au-BN6qAfpQ2Li3R5RXT5AQBHFK_WjfTSYyeVdY8NUMTN7LC5HrmlFB-L1PGLIf13G8jCEiyqc3_LlPGv6yyckla8bTIXn1wOi9xfPXjNwNOhJAS6lGhpkvKwTsZD54vkJTOGF7T32hXceCpSfMWe3QsfUFyZj05F5CiNQzAOai7zWuYnY2rTMnpzN4LZTLSHQxTzv" />
+                                <div class="text-xs text-brand-gray">
+                                    <p class="font-medium text-gray-800">Shai Clark</p>
+                                    <p>Mar 23, 2021 · 2 min read</p>
+                                </div>
+                            </div>
+                            <button class="text-gray-400 hover:text-gray-600">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path
+                                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <h2
+                            class="inline-block font-display text-3xl md:text-4xl uppercase leading-[1.1] mb-4 text-[#2A2A2A] scale-x-[1.4] origin-left">
+                            What is CBD?
+                        </h2>
+                        <p class="text-brand-gray text-sm leading-relaxed mb-4 line-clamp-4">
+                            CBD is becoming more and more popular in the market, with a wide range of oils, gummies, and
+                            tinctures available. With its growing...
+                        </p>
+                    </div>
+                    <div>
+                        <div class="h-px bg-brand-border w-full mb-4"></div>
+                        <div class="flex items-center justify-between text-xs text-brand-gray">
+                            <div class="flex space-x-4">
+                                <span>1,236 views</span>
+                                <span>122 comments</span>
+                            </div>
+                            <div class="flex items-center space-x-1 text-brand-accent">
+                                <span>23</span>
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path
+                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </main>
+    <!-- END: MainContent -->
+</body>
+
+</html>
