@@ -76,6 +76,70 @@
         }
         .btn-primary:hover::after { transform: scaleX(1); }
 
+        /* ── Trending Topic Cards ── */
+        .topic-card {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 340px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.3s ease, transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow 0.35s ease;
+        }
+        .topic-card:hover {
+            border-color: #000;
+            transform: translateY(-6px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+        }
+        .topic-card.reverse { direction: rtl; }
+        .topic-card.reverse > * { direction: ltr; }
+        .topic-card__img {
+            overflow: hidden;
+            position: relative;
+        }
+        .topic-card__img img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            transition: transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94);
+        }
+        .topic-card:hover .topic-card__img img { transform: scale(1.07); }
+        .topic-card__body {
+            background: #FDFCFB;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .topic-num {
+            font-family: 'Anton', sans-serif;
+            font-size: 4rem;
+            line-height: 1;
+            opacity: 0.07;
+            position: absolute;
+            bottom: 1rem; right: 1.5rem;
+            pointer-events: none;
+            user-select: none;
+        }
+        .topic-tag {
+            display: inline-block;
+            border: 1px solid #000;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .topic-card:hover .topic-tag { background: #000; color: #fff; }
+        .topic-arrow {
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+        .topic-card:hover .topic-arrow { transform: translateX(6px); }
+
         .dot-divider { letter-spacing: 0.6rem; }
 
         .nl-input {
@@ -105,6 +169,7 @@
                 <a href="#eatables"   class="nav-link">Eatables</a>
                 <a href="#wearables"  class="nav-link">Wearables</a>
                 <a href="#about"      class="nav-link">About</a>
+                <a href="#topics"     class="nav-link">Topics</a>
                 <a href="blogs.html"  class="nav-link">Blog</a>
                 <a href="#contact"    class="nav-link">Contact</a>
             </nav>
@@ -129,6 +194,7 @@
             <a href="#eatables">Eatables</a>
             <a href="#wearables">Wearables</a>
             <a href="#about">About</a>
+            <a href="#topics">Topics</a>
             <a href="blogs.html">Blog</a>
             <a href="#contact">Contact</a>
             <a href="login.html">Log In</a>
@@ -219,6 +285,135 @@
             <span class="dot-divider px-4">&middot;</span>
         </div>
     </div>
+
+    <!-- TRENDING TOPICS -->
+    <section id="topics" class="max-w-7xl mx-auto px-6 py-20">
+        <div class="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div>
+                <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant mb-2">Explore</p>
+                <h2 class="font-display text-5xl md:text-6xl" style="transform:scaleX(1.08);transform-origin:left;">
+                    Trending Topics
+                </h2>
+            </div>
+            <a href="blogs.html" class="text-sm underline underline-offset-4 hover:opacity-60 transition-opacity self-start md:self-auto">
+                View all posts &rarr;
+            </a>
+        </div>
+
+        <div class="flex flex-col gap-6">
+
+            <!-- Topic 1: Gut Health -->
+            <a href="blogs.html?topic=gut" class="topic-card" aria-label="Explore Gut Health posts">
+                <div class="topic-card__img" style="background:#5C7A6E;">
+                    <img src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=900&auto=format&fit=crop"
+                         alt="Gut Health" />
+                    <span class="topic-num">01</span>
+                </div>
+                <div class="topic-card__body relative">
+                    <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant">4 posts &middot; Nutrition</p>
+                    <h3 class="font-display text-3xl md:text-4xl" style="transform:scaleX(1.08);transform-origin:left;">Gut Health</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">
+                        Your gut is your second brain. Discover how a diverse, fibre-rich diet can transform your wellbeing from the inside out.
+                    </p>
+                    <div>
+                        <span class="topic-tag">Nutrition</span>
+                        <span class="topic-tag">Microbiome</span>
+                        <span class="topic-tag">Wellness</span>
+                    </div>
+                    <span class="text-sm font-semibold">Read posts <span class="topic-arrow">&rarr;</span></span>
+                </div>
+            </a>
+
+            <!-- Topic 2: Sleep & Recovery (reversed) -->
+            <a href="blogs.html?topic=sleep" class="topic-card reverse" aria-label="Explore Sleep posts">
+                <div class="topic-card__img" style="background:#3D5A80;">
+                    <img src="https://images.unsplash.com/photo-1531353826977-0941b4779a1c?w=900&auto=format&fit=crop"
+                         alt="Sleep & Recovery" />
+                    <span class="topic-num">02</span>
+                </div>
+                <div class="topic-card__body relative">
+                    <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant">3 posts &middot; Lifestyle</p>
+                    <h3 class="font-display text-3xl md:text-4xl" style="transform:scaleX(1.08);transform-origin:left;">Sleep &amp; Recovery</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">
+                        Quality sleep is the most powerful recovery tool you have. Learn how nutrition and routine can help you rest deeper.
+                    </p>
+                    <div>
+                        <span class="topic-tag">Sleep</span>
+                        <span class="topic-tag">Recovery</span>
+                        <span class="topic-tag">Cortisol</span>
+                    </div>
+                    <span class="text-sm font-semibold">Read posts <span class="topic-arrow">&rarr;</span></span>
+                </div>
+            </a>
+
+            <!-- Topic 3: Meal Prep -->
+            <a href="blogs.html?topic=meal" class="topic-card" aria-label="Explore Meal Prep posts">
+                <div class="topic-card__img" style="background:#A07850;">
+                    <img src="https://images.unsplash.com/photo-1543352634-99a5d50ae78e?w=900&auto=format&fit=crop"
+                         alt="Meal Prep" />
+                    <span class="topic-num">03</span>
+                </div>
+                <div class="topic-card__body relative">
+                    <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant">5 posts &middot; Cooking</p>
+                    <h3 class="font-display text-3xl md:text-4xl" style="transform:scaleX(1.08);transform-origin:left;">Meal Prep</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">
+                        Stop wasting time on last-minute cooking. Master the art of batch prep with organic, wholesome ingredients.
+                    </p>
+                    <div>
+                        <span class="topic-tag">Cooking</span>
+                        <span class="topic-tag">Organic</span>
+                        <span class="topic-tag">Batch Prep</span>
+                    </div>
+                    <span class="text-sm font-semibold">Read posts <span class="topic-arrow">&rarr;</span></span>
+                </div>
+            </a>
+
+            <!-- Topic 4: Slow Fashion (reversed) -->
+            <a href="blogs.html?topic=fashion" class="topic-card reverse" aria-label="Explore Slow Fashion posts">
+                <div class="topic-card__img" style="background:#7B5E7B;">
+                    <img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=900&auto=format&fit=crop"
+                         alt="Slow Fashion" />
+                    <span class="topic-num">04</span>
+                </div>
+                <div class="topic-card__body relative">
+                    <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant">6 posts &middot; Sustainability</p>
+                    <h3 class="font-display text-3xl md:text-4xl" style="transform:scaleX(1.08);transform-origin:left;">Slow Fashion</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">
+                        Fast fashion harms the planet — and your skin. We make the case for natural-fibre wearables that last a lifetime.
+                    </p>
+                    <div>
+                        <span class="topic-tag">Fashion</span>
+                        <span class="topic-tag">Sustainable</span>
+                        <span class="topic-tag">Natural Fibres</span>
+                    </div>
+                    <span class="text-sm font-semibold">Read posts <span class="topic-arrow">&rarr;</span></span>
+                </div>
+            </a>
+
+            <!-- Topic 5: Mindfulness -->
+            <a href="blogs.html?topic=mindfulness" class="topic-card" aria-label="Explore Mindfulness posts">
+                <div class="topic-card__img" style="background:#82915F;">
+                    <img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=900&auto=format&fit=crop"
+                         alt="Mindfulness" />
+                    <span class="topic-num">05</span>
+                </div>
+                <div class="topic-card__body relative">
+                    <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant">7 posts &middot; Mental Health</p>
+                    <h3 class="font-display text-3xl md:text-4xl" style="transform:scaleX(1.08);transform-origin:left;">Mindfulness</h3>
+                    <p class="text-sm text-on-surface-variant leading-relaxed">
+                        From morning rituals to breathwork — small daily practices that create profound shifts in focus, calm, and clarity.
+                    </p>
+                    <div>
+                        <span class="topic-tag">Mindfulness</span>
+                        <span class="topic-tag">Mental Health</span>
+                        <span class="topic-tag">Focus</span>
+                    </div>
+                    <span class="text-sm font-semibold">Read posts <span class="topic-arrow">&rarr;</span></span>
+                </div>
+            </a>
+
+        </div>
+    </section>
 
     <!-- FEATURES -->
     <section id="eatables" class="max-w-7xl mx-auto px-6 py-20">

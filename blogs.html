@@ -5,78 +5,289 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Blog Archive</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Inter:wght@400;500;600&amp;display=swap"
+    <title>Blog — OD</title>
+    <meta name="description"
+        content="Read the latest articles on organic living, nutrition, and mindful lifestyle from OD." />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Anton&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
         rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         background: '#F2EBE1',
-                        'brand-bg': '#F2EBE1',
-                        'brand-text': '#333333',
-                        'brand-accent': '#E57373',
+                        primary: '#000000',
+                        'on-background': '#FFFFFF',
+                        'on-surface-variant': '#6B7280',
                         'brand-card-bg': '#FDFCFB',
                         'brand-gray': '#757575',
                         'brand-border': '#E0DCD6'
                     },
                     fontFamily: {
-                        'sans': ['Inter', 'sans-serif'],
-                        'display': ['Anton', 'Arial Black', 'sans-serif'],
+                        display: ['Anton', 'Arial Black', 'sans-serif'],
+                        body: ['Arial', 'Helvetica', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
-    <style data-purpose="custom-styles">
-        body {
-            background-color: #F2EBE1;
-            color: #333333;
+    <style>
+        html {
+            scroll-behavior: smooth;
         }
+
+        /* ── Nav link underline ── */
+        .nav-link {
+            position: relative;
+            text-decoration: none;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -2px;
+            width: 0;
+            height: 1px;
+            background: #000;
+            transition: width 0.25s ease;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* ── Button shimmer ── */
+        .btn-primary {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.12);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+
+        .btn-primary:hover::after {
+            transform: scaleX(1);
+        }
+
+        /* ── Reading progress bar ── */
+        #progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            width: 0%;
+            background: #000;
+            z-index: 100;
+            transition: width 0.1s linear;
+        }
+
+        /* ── Card scroll reveal ── */
+        .blog-card {
+            opacity: 0;
+            transform: translateY(32px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .blog-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ── Card hover lift + border ── */
+        .blog-card article {
+            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                box-shadow 0.35s ease,
+                border-color 0.35s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+
+        .blog-card:hover article {
+            transform: translateY(-8px);
+            box-shadow: 0 24px 56px rgba(0, 0, 0, 0.13);
+            border-color: #000;
+        }
+
+        /* ── Card image zoom on hover ── */
+        .blog-card .card-img {
+            transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .blog-card:hover .card-img {
+            transform: scale(1.06);
+        }
+
+        /* ── Read badge reveal ── */
+        .read-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: #000;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            opacity: 0;
+            transform: translateY(-6px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+        }
+
+        .blog-card:hover .read-badge {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ── Like button ── */
+        .like-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: color 0.2s ease;
+            background: none;
+            border: none;
+            padding: 0;
+            font-size: 0.75rem;
+            color: #757575;
+        }
+
+        .like-btn.liked {
+            color: #000;
+        }
+
+        .like-btn svg {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), fill 0.2s ease;
+        }
+
+        .like-btn.liked svg {
+            transform: scale(1.3);
+            fill: #000;
+            stroke: #000;
+        }
+
+        .like-btn:active svg {
+            transform: scale(0.85);
+        }
+
+        /* ── Search bar ── */
+        #search-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #000;
+            outline: none;
+            padding: 0.4rem 0;
+            font-size: 0.85rem;
+            width: 0;
+            opacity: 0;
+            transition: width 0.35s ease, opacity 0.3s ease;
+        }
+
+        #search-input.open {
+            width: 180px;
+            opacity: 1;
+        }
+
+        /* ── No results ── */
+        #no-results {
+            display: none;
+            text-align: center;
+            padding: 3rem 0;
+            font-size: 0.9rem;
+            color: #6B7280;
+        }
+
+        /* ── Topic Filter Banner ── */
+        #topic-banner {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            background: #000;
+            color: #fff;
+            padding: 0.85rem 1.5rem;
+            margin-bottom: 2rem;
+            animation: slideUp 0.4s ease forwards;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        #topic-banner.active { display: flex; }
+        #topic-clear {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.4);
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            white-space: nowrap;
+        }
+        #topic-clear:hover { background: rgba(255,255,255,0.15); border-color: #fff; }
     </style>
 </head>
 
-<body class="font-sans antialiased min-h-screen bg-[#F2EBE1]">
+<body class="bg-background text-primary font-body min-h-screen">
     <!-- BEGIN: MainHeader -->
-    <header class="py-6 px-8 flex items-center justify-between max-w-7xl mx-auto" data-purpose="site-header">
-        <!-- Logo -->
-        <div class="flex items-center" data-purpose="logo">
-            <div
-                class="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-400 to-blue-500 flex items-center justify-center font-bold text-lg border border-gray-800">
-                OD
+    <header id="nav" class="sticky top-0 z-50 bg-background border-b border-black/10">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <!-- Brand -->
+            <a href="index.html" class="font-display text-3xl tracking-tighter leading-none">OD</a>
+
+            <!-- Desktop nav -->
+            <nav class="hidden md:flex gap-8 items-center text-sm">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="index.html#eatables" class="nav-link">Eatables</a>
+                <a href="index.html#wearables" class="nav-link">Wearables</a>
+                <a href="index.html#about" class="nav-link">About</a>
+                <a href="blogs.html" class="nav-link font-bold">Blog</a>
+                <a href="index.html#contact" class="nav-link">Contact</a>
+            </nav>
+
+            <!-- Trailing actions -->
+            <div class="flex items-center gap-5">
+                <a href="login.html" class="hidden md:block text-sm font-medium nav-link">Log In</a>
+                <a href="signup.html"
+                    class="btn-primary bg-black text-white text-sm font-semibold px-5 py-2 hidden md:block hover:bg-gray-800 transition-colors">
+                    Sign Up
+                </a>
+                <button aria-label="Shopping Bag" class="hover:opacity-60 transition-opacity">
+                    <span class="material-symbols-outlined" style="font-size:22px">shopping_bag</span>
+                </button>
+                <!-- Mobile hamburger -->
+                <button id="menu-btn" aria-label="Open menu" class="md:hidden">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
             </div>
         </div>
-        <!-- Navigation -->
-        <nav class="hidden md:flex space-x-8 text-sm font-medium" data-purpose="main-nav">
-            <a class="hover:text-brand-accent transition-colors" href="#">Home</a>
-            <a class="hover:text-brand-accent transition-colors" href="#">Eatables</a>
-            <a class="hover:text-brand-accent transition-colors" href="#">Wearables</a>
-            <a class="hover:text-brand-accent transition-colors" href="#">About</a>
-            <a class="hover:text-brand-accent transition-colors" href="#">Contact</a>
-            <a class="text-brand-accent" href="#">Blog</a>
-        </nav>
-        <!-- User Actions -->
-        <div class="flex items-center space-x-6 text-sm font-medium" data-purpose="user-actions">
-            <a href="login.html" class="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path
-                        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                </svg>
-                <span>Log In</span>
-            </a>
-            <button class="relative hover:opacity-80 transition-opacity">
-                <svg class="h-6 w-6 text-indigo-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-width="2"></path>
-                </svg>
-                <span
-                    class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/4 text-[10px] font-bold text-gray-800">0</span>
-            </button>
+
+        <!-- Mobile menu -->
+        <div id="mobile-menu"
+            class="hidden md:hidden bg-background border-t border-black/10 px-6 py-4 flex flex-col gap-4 text-sm">
+            <a href="index.html" class="">Home</a>
+            <a href="index.html#eatables">Eatables</a>
+            <a href="index.html#wearables">Wearables</a>
+            <a href="index.html#about">About</a>
+            <a href="blogs.html" class="font-bold">Blog</a>
+            <a href="index.html#contact">Contact</a>
+            <a href="login.html">Log In</a>
+            <a href="signup.html" class="btn-primary bg-black text-white text-center py-2 font-semibold">Sign Up</a>
         </div>
     </header>
     <!-- END: MainHeader -->
@@ -84,137 +295,412 @@
     <main class="max-w-5xl mx-auto px-6 py-8" data-purpose="main-content">
         <!-- Top Bar -->
         <div class="flex items-center justify-between mb-8" data-purpose="content-top-bar">
-            <h1 class="text-xl font-medium text-brand-accent">All Posts</h1>
-            <button class="text-gray-600 hover:text-black">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-width="2"></path>
-                </svg>
-            </button>
+            <h1 class="font-display text-4xl md:text-5xl" style="transform:scaleX(1.08);transform-origin:left;">All
+                Posts</h1>
+            <!-- Search -->
+            <div class="flex items-center gap-3">
+                <input id="search-input" type="text" placeholder="Search posts..." aria-label="Search blog posts" />
+                <button id="search-btn" aria-label="Toggle search"
+                    class="text-gray-600 hover:text-black transition-colors">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round"
+                            stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
         <!-- Blog Posts Container -->
         <div class="space-y-8 bg-[#EAE2D8] p-8 rounded-sm" data-purpose="blog-posts-list">
+            <!-- Topic Filter Banner -->
+            <div id="topic-banner">
+                <div>
+                    <p class="text-xs font-semibold tracking-widest uppercase opacity-60 mb-0.5">Filtered by topic</p>
+                    <p id="topic-label" class="font-display text-lg uppercase" style="transform:scaleX(1.06);transform-origin:left;display:inline-block;"></p>
+                </div>
+                <button id="topic-clear" aria-label="Clear topic filter">&times; Clear filter</button>
+            </div>
+            <div id="no-results">No posts match your search.</div>
             <!-- Post 1 -->
-            <article class="bg-brand-card-bg flex flex-col md:flex-row h-[400px] overflow-hidden shadow-sm">
-                <div class="md:w-[55%] h-full bg-[#82915F] relative">
-                    <!-- Using placeholder image as requested -->
-                    <img alt="Benefits of CBD Illustration"
-                        class="w-full h-full object-cover mix-blend-multiply opacity-80"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuChBp1161jdzUj3C7bTYpt7e0ZMUkLBcpTvgazZ0cMHMMqg9d-rM5LMJFJi3jgyq_wPbrnERXAkp3sF0Swz9XJIz13lvSHVRHdFjU7Xj7UtCajN2LSk4PjQYLrGv-MDtI2A5Z68E6ZMpxQH_2p7REyLN8mJJWJfSa2XSTe2DYd1isosS5Zudp6NgvGx_WMpbzQGIT0o0W1Np9TrPAVYUBH2uM8elsaB7kolq0oi-pzGqB8pJbiVwvud" />
-                    <div
-                        class="absolute inset-0 flex flex-col items-center justify-end pb-12 text-white font-display text-center uppercase tracking-widest text-lg px-8 scale-x-[1.4] origin-center">
-                        <p>You are now entering</p>
-                        <p>A new state of mind...</p>
+            <div class="blog-card" data-title="the gut-brain connection" data-tags="gut health nutrition" data-topic="gut">
+                <article class="bg-brand-card-bg flex flex-col md:flex-row h-[400px] overflow-hidden shadow-sm">
+                    <div class="md:w-[55%] h-full bg-[#5C7A6E] relative overflow-hidden">
+                        <span class="read-badge">4 min read</span>
+                        <img alt="Gut Health Illustration"
+                            class="card-img w-full h-full object-cover mix-blend-multiply opacity-75"
+                            src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&auto=format&fit=crop" />
+                        <div
+                            class="absolute inset-0 flex flex-col items-center justify-end pb-8 text-white font-display text-center uppercase tracking-widest text-base px-4 overflow-hidden">
+                            <p>Feed your gut,</p>
+                            <p>Feed your mind.</p>
+                        </div>
                     </div>
-                </div>
-                <div class="md:w-[45%] p-10 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-6">
-                            <div class="flex items-center space-x-3">
-                                <img alt="Author" class="w-8 h-8 rounded-full"
-                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtk7J7MwHmiVv04LaeOzTWWYNY0f8PC3GdpIuFJg0H9KKk4iJ7jQQ3kXHznkKd-EH0rPOniK9i56U7oCgPYAIvfvmIJeHrgPaIJehDzpvss3fHAJ2kb2Tss0o8pUv9rPEFBbHBF-VhN74ia1a5vbPTXrGI4O81kOKGM1pDyuRLimtIjHlQFiCgMD7-ez9phgH02GSzuKwXWqPBlXeDNXU-fTZxFgfZ-1uTF9ecvgL34Ro3ASRrV0tJ" />
-                                <div class="text-xs text-brand-gray">
-                                    <p class="font-medium text-gray-800">Shai Clark</p>
-                                    <p>Mar 23, 2021 · 2 min read</p>
+                    <div class="md:w-[45%] p-10 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="flex items-center space-x-3">
+                                    <img alt="Author" class="w-8 h-8 rounded-full"
+                                        src="https://i.pravatar.cc/32?img=5" />
+                                    <div class="text-xs text-brand-gray">
+                                        <p class="font-medium text-gray-800">Priya Nair</p>
+                                        <p>Jun 10, 2022 · 4 min read</p>
+                                    </div>
+                                </div>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <h2
+                                class="block font-display text-2xl md:text-3xl uppercase leading-[1.15] mb-4 text-[#2A2A2A] overflow-hidden">
+                                The Gut-Brain Connection
+                            </h2>
+                            <p class="text-brand-gray text-sm leading-relaxed mb-4 line-clamp-3">
+                                Your gut is your second brain. Discover how a diverse, fibre-rich diet can reduce
+                                anxiety,
+                                sharpen focus, and transform your overall wellbeing from the inside out.
+                            </p>
+                        </div>
+                        <div>
+                            <div class="h-px bg-brand-border w-full mb-4"></div>
+                            <div class="flex items-center justify-between text-xs text-brand-gray">
+                                <div class="flex space-x-4">
+                                    <span>3,847 views</span>
+                                    <span>54 comments</span>
+                                </div>
+                                <div class="flex items-center space-x-1 text-brand-accent">
+                                    <span>41</span>
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                    </svg>
                                 </div>
                             </div>
-                            <button class="text-gray-400 hover:text-gray-600">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path
-                                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <h2
-                            class="inline-block font-display text-3xl md:text-4xl uppercase leading-[1.1] mb-4 text-[#2A2A2A] scale-x-[1.4] origin-left">
-                            Benefits of CBD, According to Medical Research
-                        </h2>
-                        <p class="text-brand-gray text-sm leading-relaxed mb-4 line-clamp-3">
-                            Over time, people are finding new, holistic approaches to treat any ailments, conditions, or
-                            pain. From chronic pain to headaches,...
-                        </p>
-                    </div>
-                    <div>
-                        <div class="h-px bg-brand-border w-full mb-4"></div>
-                        <div class="flex items-center justify-between text-xs text-brand-gray">
-                            <div class="flex space-x-4">
-                                <span>4,711 views</span>
-                                <span>20 comments</span>
-                            </div>
-                            <div class="flex items-center space-x-1 text-brand-accent">
-                                <span>28</span>
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path
-                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                                </svg>
-                            </div>
                         </div>
                     </div>
-                </div>
-            </article>
+                </article>
+            </div><!-- end .blog-card -->
             <!-- Post 2 -->
-            <article class="bg-brand-card-bg flex flex-col md:flex-row h-[400px] overflow-hidden shadow-sm">
-                <div class="md:w-[55%] h-full bg-[#FDFCFB] border-r border-brand-border">
-                    <img alt="What is CBD Diagram" class="w-full h-full object-cover"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXhdk2REsP6mTTLk5NjcmBPRCUCxWHRhjUIXWm-8IjetWFdSi9LdNJvyShGSVbJ5n12d1a_oot9oRxsomWuvE_GPUFUNgUlsVHThvOWmhBDPrLHMNKEVU7-E14kDYWbaXx3O-RHqvs-eAeS1feIUO0qlLt7JolwzHFkH31GxXL5STDkSItQYqxx13Ea5T2qmjfDzH_K9ZlX46buenKTnVjVtpeM4SOLgHvWvu5BnnIMHFgOPA17gjD" />
-                </div>
-                <div class="md:w-[45%] p-10 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-6">
-                            <div class="flex items-center space-x-3">
-                                <img alt="Author" class="w-8 h-8 rounded-full"
-                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGd91ZHvduPXyhKtVp_oZH0x5kyIlGcaMbWHxR3INYPWhSi1au-BN6qAfpQ2Li3R5RXT5AQBHFK_WjfTSYyeVdY8NUMTN7LC5HrmlFB-L1PGLIf13G8jCEiyqc3_LlPGv6yyckla8bTIXn1wOi9xfPXjNwNOhJAS6lGhpkvKwTsZD54vkJTOGF7T32hXceCpSfMWe3QsfUFyZj05F5CiNQzAOai7zWuYnY2rTMnpzN4LZTLSHQxTzv" />
-                                <div class="text-xs text-brand-gray">
-                                    <p class="font-medium text-gray-800">Shai Clark</p>
-                                    <p>Mar 23, 2021 · 2 min read</p>
+            <div class="blog-card" data-title="meal prep like a pro" data-tags="food cooking organic" data-topic="meal">
+                <article class="bg-brand-card-bg flex flex-col md:flex-row h-[400px] overflow-hidden shadow-sm">
+                    <div class="md:w-[55%] h-full bg-[#A07850] overflow-hidden">
+                        <span class="read-badge">5 min read</span>
+                        <img alt="Meal Prep Illustration" class="card-img w-full h-full object-cover"
+                            src="https://images.unsplash.com/photo-1543352634-99a5d50ae78e?w=800&auto=format&fit=crop" />
+                    </div>
+                    <div class="md:w-[45%] p-10 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="flex items-center space-x-3">
+                                    <img alt="Author" class="w-8 h-8 rounded-full"
+                                        src="https://i.pravatar.cc/32?img=12" />
+                                    <div class="text-xs text-brand-gray">
+                                        <p class="font-medium text-gray-800">Arjun Mehta</p>
+                                        <p>Aug 3, 2022 · 5 min read</p>
+                                    </div>
+                                </div>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <h2
+                                class="block font-display text-2xl md:text-3xl uppercase leading-[1.15] mb-4 text-[#2A2A2A] overflow-hidden">
+                                Meal Prep Like a Pro
+                            </h2>
+                            <p class="text-brand-gray text-sm leading-relaxed mb-4 line-clamp-3">
+                                Stop wasting Sunday evenings on last-minute cooking. Our step-by-step guide to
+                                batch-cooking
+                                wholesome, organic meals will save you time, money, and a lot of stress.
+                            </p>
+                        </div>
+                        <div>
+                            <div class="h-px bg-brand-border w-full mb-4"></div>
+                            <div class="flex items-center justify-between text-xs text-brand-gray">
+                                <div class="flex space-x-4">
+                                    <span>2,190 views</span>
+                                    <span>37 comments</span>
+                                </div>
+                                <div class="flex items-center space-x-1 text-brand-accent">
+                                    <span>19</span>
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                    </svg>
                                 </div>
                             </div>
-                            <button class="text-gray-400 hover:text-gray-600">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path
-                                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <h2
-                            class="inline-block font-display text-3xl md:text-4xl uppercase leading-[1.1] mb-4 text-[#2A2A2A] scale-x-[1.4] origin-left">
-                            What is CBD?
-                        </h2>
-                        <p class="text-brand-gray text-sm leading-relaxed mb-4 line-clamp-4">
-                            CBD is becoming more and more popular in the market, with a wide range of oils, gummies, and
-                            tinctures available. With its growing...
-                        </p>
-                    </div>
-                    <div>
-                        <div class="h-px bg-brand-border w-full mb-4"></div>
-                        <div class="flex items-center justify-between text-xs text-brand-gray">
-                            <div class="flex space-x-4">
-                                <span>1,236 views</span>
-                                <span>122 comments</span>
-                            </div>
-                            <div class="flex items-center space-x-1 text-brand-accent">
-                                <span>23</span>
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path
-                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                                        stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                                </svg>
-                            </div>
                         </div>
                     </div>
-                </div>
-            </article>
+                </article>
+            </div><!-- end .blog-card -->
+            <!-- Post 3 -->
+            <div class="blog-card" data-title="sleep the ultimate recovery tool" data-tags="sleep wellness recovery" data-topic="sleep">
+                <article class="bg-brand-card-bg flex flex-col md:flex-row h-[400px] overflow-hidden shadow-sm">
+                    <div class="md:w-[55%] h-full bg-[#3D5A80] relative overflow-hidden">
+                        <span class="read-badge">3 min read</span>
+                        <img alt="Sleep and Recovery"
+                            class="card-img w-full h-full object-cover mix-blend-multiply opacity-80"
+                            src="https://images.unsplash.com/photo-1531353826977-0941b4779a1c?w=800&auto=format&fit=crop" />
+                        <div
+                            class="absolute inset-0 flex flex-col items-center justify-end pb-8 text-white font-display text-center uppercase tracking-widest text-base px-4 overflow-hidden">
+                            <p>Rest is not</p>
+                            <p>a luxury.</p>
+                        </div>
+                    </div>
+                    <div class="md:w-[45%] p-10 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="flex items-center space-x-3">
+                                    <img alt="Author" class="w-8 h-8 rounded-full"
+                                        src="https://i.pravatar.cc/32?img=22" />
+                                    <div class="text-xs text-brand-gray">
+                                        <p class="font-medium text-gray-800">Leena Shah</p>
+                                        <p>Jan 15, 2023 · 3 min read</p>
+                                    </div>
+                                </div>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <h2
+                                class="block font-display text-2xl md:text-3xl uppercase leading-[1.15] mb-4 text-[#2A2A2A] overflow-hidden">
+                                Sleep: The Ultimate Recovery Tool
+                            </h2>
+                            <p class="text-brand-gray text-sm leading-relaxed mb-4 line-clamp-3">
+                                The foods you eat directly impact the quality of your sleep. We break down which
+                                nutrients
+                                boost melatonin, reduce cortisol, and help you wake up genuinely refreshed.
+                            </p>
+                        </div>
+                        <div>
+                            <div class="h-px bg-brand-border w-full mb-4"></div>
+                            <div class="flex items-center justify-between text-xs text-brand-gray">
+                                <div class="flex space-x-4">
+                                    <span>5,502 views</span>
+                                    <span>88 comments</span>
+                                </div>
+                                <div class="flex items-center space-x-1 text-brand-accent">
+                                    <span>67</span>
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div><!-- end .blog-card -->
+            <!-- Post 4 -->
+            <div class="blog-card" data-title="why slow fashion wins" data-tags="fashion sustainability wearables" data-topic="fashion">
+                <article class="bg-brand-card-bg flex flex-col md:flex-row h-[400px] overflow-hidden shadow-sm">
+                    <div class="md:w-[55%] h-full bg-[#7B5E7B] overflow-hidden">
+                        <span class="read-badge">6 min read</span>
+                        <img alt="Sustainable Fashion" class="card-img w-full h-full object-cover"
+                            src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&auto=format&fit=crop" />
+                    </div>
+                    <div class="md:w-[45%] p-10 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="flex items-center space-x-3">
+                                    <img alt="Author" class="w-8 h-8 rounded-full"
+                                        src="https://i.pravatar.cc/32?img=33" />
+                                    <div class="text-xs text-brand-gray">
+                                        <p class="font-medium text-gray-800">Riya Desai</p>
+                                        <p>Apr 2, 2023 · 6 min read</p>
+                                    </div>
+                                </div>
+                                <button class="text-gray-400 hover:text-gray-600">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <h2
+                                class="block font-display text-2xl md:text-3xl uppercase leading-[1.15] mb-4 text-[#2A2A2A] overflow-hidden">
+                                Why Slow Fashion Wins
+                            </h2>
+                            <p class="text-brand-gray text-sm leading-relaxed mb-4 line-clamp-3">
+                                Fast fashion harms the planet — and your skin. We make the case for natural-fibre
+                                wearables
+                                that look better, feel better, and last a lifetime. Quality over quantity, always.
+                            </p>
+                        </div>
+                        <div>
+                            <div class="h-px bg-brand-border w-full mb-4"></div>
+                            <div class="flex items-center justify-between text-xs text-brand-gray">
+                                <div class="flex space-x-4">
+                                    <span>1,874 views</span>
+                                    <span>29 comments</span>
+                                </div>
+                                <div class="flex items-center space-x-1 text-brand-accent">
+                                    <span>35</span>
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div><!-- end .blog-card -->
         </div>
     </main>
     <!-- END: MainContent -->
+
+    <!-- FOOTER -->
+    <footer
+        class="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-on-surface-variant border-t border-black/10 mt-12">
+        <a href="index.html" class="font-display text-2xl text-primary tracking-tighter">OD</a>
+        <nav class="flex flex-wrap gap-6 justify-center">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="index.html#eatables" class="nav-link">Eatables</a>
+            <a href="index.html#wearables" class="nav-link">Wearables</a>
+            <a href="blogs.html" class="nav-link">Blog</a>
+            <a href="login.html" class="nav-link">Log In</a>
+            <a href="signup.html" class="nav-link">Sign Up</a>
+        </nav>
+        <p>&copy; 2026 OD. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // ── Mobile menu ──
+        const menuBtn = document.getElementById('menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        menuBtn.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+
+        // ── Reading progress bar ──
+        const bar = document.createElement('div');
+        bar.id = 'progress-bar';
+        document.body.prepend(bar);
+        window.addEventListener('scroll', () => {
+            const scrolled = window.scrollY;
+            const total = document.documentElement.scrollHeight - window.innerHeight;
+            bar.style.width = (total > 0 ? (scrolled / total) * 100 : 0) + '%';
+        });
+
+        // ── Scroll reveal (IntersectionObserver) ──
+        const cards = document.querySelectorAll('.blog-card');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, i) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => entry.target.classList.add('visible'), i * 120);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.12 });
+        cards.forEach(card => observer.observe(card));
+
+        // ── Animated like buttons ──
+        // Replace static like divs with interactive buttons
+        document.querySelectorAll('.blog-card').forEach((card, idx) => {
+            const likeCounts = [41, 19, 67, 35];
+            const likeContainer = card.querySelector('.flex.items-center.space-x-1');
+            if (!likeContainer) return;
+            const count = likeCounts[idx] ?? 0;
+            likeContainer.innerHTML = `
+                <button class="like-btn" aria-label="Like post" data-count="${count}">
+                    <span class="like-count">${count}</span>
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                </button>`;
+
+            likeContainer.querySelector('.like-btn').addEventListener('click', function (e) {
+                e.stopPropagation();
+                const isLiked = this.classList.toggle('liked');
+                const countEl = this.querySelector('.like-count');
+                let n = parseInt(this.dataset.count);
+                n = isLiked ? n + 1 : n - 1;
+                this.dataset.count = n;
+                countEl.textContent = n;
+            });
+        });
+
+        // ── Live search / filter ──
+        const searchBtn = document.getElementById('search-btn');
+        const searchInput = document.getElementById('search-input');
+        const noResults = document.getElementById('no-results');
+
+        searchBtn.addEventListener('click', () => {
+            searchInput.classList.toggle('open');
+            if (searchInput.classList.contains('open')) {
+                searchInput.focus();
+            } else {
+                searchInput.value = '';
+                filterCards('');
+            }
+        });
+
+        searchInput.addEventListener('input', () => filterCards(searchInput.value));
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                searchInput.classList.remove('open');
+                searchInput.value = '';
+                filterCards('');
+            }
+        });
+
+        function filterCards(query) {
+            const q = query.toLowerCase().trim();
+            let visibleCount = 0;
+            cards.forEach(card => {
+                const title = (card.dataset.title || '').toLowerCase();
+                const tags = (card.dataset.tags || '').toLowerCase();
+                const match = !q || title.includes(q) || tags.includes(q);
+                card.style.display = match ? '' : 'none';
+                if (match) visibleCount++;
+            });
+            noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+
+        // ── Subtle 3-D card tilt on mouse move ──
+        cards.forEach(card => {
+            const article = card.querySelector('article');
+            card.addEventListener('mousemove', (e) => {
+                const rect = article.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const cx = rect.width / 2;
+                const cy = rect.height / 2;
+                const rotateX = ((y - cy) / cy) * -3;   // max ±3deg
+                const rotateY = ((x - cx) / cx) * 3;
+                article.style.transform = `translateY(-8px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                article.style.transition = 'transform 0.1s ease';
+            });
+            card.addEventListener('mouseleave', () => {
+                article.style.transform = '';
+                article.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            });
+        });
+    </script>
 </body>
 
 </html>
