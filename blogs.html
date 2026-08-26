@@ -5,9 +5,9 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Blog — OD</title>
+    <title>Blog — BARD</title>
     <meta name="description"
-        content="Read the latest articles on organic living, nutrition, and mindful lifestyle from OD." />
+        content="Read the latest articles on organic living, nutrition, and mindful lifestyle from BARD." />
     <link
         href="https://fonts.googleapis.com/css2?family=Anton&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
         rel="stylesheet" />
@@ -38,7 +38,6 @@
             scroll-behavior: smooth;
         }
 
-        /* ── Nav link underline ── */
         .nav-link {
             position: relative;
             text-decoration: none;
@@ -59,7 +58,6 @@
             width: 100%;
         }
 
-        /* ── Button shimmer ── */
         .btn-primary {
             position: relative;
             overflow: hidden;
@@ -79,7 +77,6 @@
             transform: scaleX(1);
         }
 
-        /* ── Reading progress bar ── */
         #progress-bar {
             position: fixed;
             top: 0;
@@ -91,19 +88,6 @@
             transition: width 0.1s linear;
         }
 
-        /* ── Card scroll reveal ── */
-        .blog-card {
-            opacity: 0;
-            transform: translateY(32px);
-            transition: opacity 0.6s ease, transform 0.6s ease;
-        }
-
-        .blog-card.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* ── Card hover lift + border ── */
         .blog-card article {
             transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
                 box-shadow 0.35s ease,
@@ -118,7 +102,6 @@
             border-color: #000;
         }
 
-        /* ── Card image zoom on hover ── */
         .blog-card .card-img {
             transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
@@ -127,7 +110,6 @@
             transform: scale(1.06);
         }
 
-        /* ── Read badge reveal ── */
         .read-badge {
             position: absolute;
             top: 16px;
@@ -150,7 +132,6 @@
             transform: translateY(0);
         }
 
-        /* ── Like button ── */
         .like-btn {
             display: flex;
             align-items: center;
@@ -219,16 +200,15 @@
             color: #fff;
             padding: 0.85rem 1.5rem;
             margin-bottom: 2rem;
-            animation: slideUp 0.4s ease forwards;
         }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(-10px); }
-            to   { opacity: 1; transform: translateY(0); }
+
+        #topic-banner.active {
+            display: flex;
         }
-        #topic-banner.active { display: flex; }
+
         #topic-clear {
             background: none;
-            border: 1px solid rgba(255,255,255,0.4);
+            border: 1px solid rgba(255, 255, 255, 0.4);
             color: #fff;
             font-size: 0.7rem;
             font-weight: 700;
@@ -239,7 +219,415 @@
             transition: background 0.2s, border-color 0.2s;
             white-space: nowrap;
         }
-        #topic-clear:hover { background: rgba(255,255,255,0.15); border-color: #fff; }
+
+        #topic-clear:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #fff;
+        }
+
+        /* ══════════════════════════════════════
+           POST READER OVERLAY
+        ══════════════════════════════════════ */
+        #post-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            background: #F2EBE1;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #post-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* Decorative side panels */
+        .overlay-side {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            background-size: cover;
+            background-position: center;
+            filter: blur(4px) brightness(0.65) saturate(0.7);
+            transform: scale(1.06);
+            pointer-events: none;
+        }
+
+        #overlay-bg-left {
+            left: 0;
+        }
+
+        #overlay-bg-right {
+            right: 0;
+        }
+
+        /* Scrollable center column */
+        #overlay-scroll {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 860px;
+            height: 100vh;
+            overflow-y: auto;
+            background: #F2EBE1;
+            padding: 2rem 3.5rem 4rem;
+            box-shadow: 0 0 80px rgba(0, 0, 0, 0.18);
+        }
+
+        /* Back button */
+        #overlay-close {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #757575;
+            padding: 0;
+            margin-bottom: 2rem;
+            transition: color 0.2s;
+        }
+
+        #overlay-close:hover {
+            color: #000;
+        }
+
+        /* Author row */
+        .ov-author-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1.2rem;
+        }
+
+        #ov-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .ov-author-name {
+            font-weight: 600;
+            font-size: 0.82rem;
+        }
+
+        .ov-meta {
+            font-size: 0.78rem;
+            color: #757575;
+        }
+
+        .ov-dot {
+            color: #ccc;
+            margin: 0 4px;
+            font-size: 0.7rem;
+        }
+
+        /* Title */
+        .ov-title {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+            line-height: 1.12;
+            text-transform: uppercase;
+            letter-spacing: 0.01em;
+            margin-bottom: 1.5rem;
+            color: #000;
+        }
+
+        /* Hero image */
+        .ov-hero {
+            width: 100%;
+            height: 260px;
+            background-size: cover;
+            background-position: center;
+            margin-bottom: 2rem;
+            border-radius: 2px;
+        }
+
+        /* Body prose */
+        .ov-body {
+            font-size: 0.93rem;
+            line-height: 1.8;
+            color: #2A2A2A;
+        }
+
+        .ov-body p {
+            margin-bottom: 1.1rem;
+        }
+
+        .ov-body h2 {
+            font-family: 'Anton', sans-serif;
+            font-size: 1.25rem;
+            text-transform: uppercase;
+            margin: 2rem 0 0.6rem;
+            color: #111;
+        }
+
+        .ov-body blockquote {
+            border-left: 3px solid #000;
+            padding-left: 1rem;
+            color: #555;
+            font-style: italic;
+            margin: 1.5rem 0;
+        }
+
+        /* Stats + share */
+        .ov-stats-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 2.5rem;
+            padding-top: 1.2rem;
+            border-top: 1px solid #E0DCD6;
+            font-size: 0.78rem;
+            color: #757575;
+        }
+
+        .ov-stats {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .ov-share {
+            display: flex;
+            gap: 10px;
+        }
+
+        .ov-share-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #757575;
+            padding: 4px;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .ov-share-btn:hover {
+            color: #000;
+            transform: scale(1.15);
+        }
+
+        /* Recent posts */
+        .ov-recent {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #E0DCD6;
+        }
+
+        .ov-recent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.2rem;
+        }
+
+        .ov-section-title {
+            font-family: 'Anton', sans-serif;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .ov-see-all {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #757575;
+            text-decoration: underline;
+            underline-offset: 3px;
+        }
+
+        .ov-recent-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .ov-recent-card {
+            cursor: pointer;
+            transition: transform 0.25s ease;
+        }
+
+        .ov-recent-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .ov-recent-img {
+            width: 100%;
+            height: 110px;
+            object-fit: cover;
+            display: block;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .ov-recent-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-top: 6px;
+            line-height: 1.3;
+        }
+
+        .ov-recent-meta {
+            font-size: 0.68rem;
+            color: #757575;
+            margin-top: 3px;
+        }
+
+        /* Comments */
+        .ov-comments {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #E0DCD6;
+        }
+
+        .ov-comment-input-wrap {
+            display: flex;
+            gap: 10px;
+            margin: 1rem 0 1.4rem;
+        }
+
+        #ov-comment-input {
+            flex: 1;
+            border: 1px solid #000;
+            background: #fff;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.82rem;
+            font-family: Arial, Helvetica, sans-serif;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #ov-comment-input:focus {
+            border-color: #555;
+        }
+
+        #ov-comment-submit {
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 0 1.2rem;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+        #ov-comment-submit:hover {
+            background: #333;
+        }
+
+        .ov-sort-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 1.4rem;
+            font-size: 0.78rem;
+            color: #757575;
+        }
+
+        .ov-sort-select {
+            border: none;
+            border-bottom: 1px solid #ccc;
+            background: transparent;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            color: #111;
+        }
+
+        .ov-comment {
+            display: flex;
+            gap: 12px;
+            padding: 1rem 0;
+            border-bottom: 1px solid #F0EDE8;
+        }
+
+        .ov-comment-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .ov-comment-body {
+            flex: 1;
+        }
+
+        .ov-comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .ov-comment-name {
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .ov-comment-date {
+            font-size: 0.72rem;
+            color: #999;
+        }
+
+        .ov-comment-text {
+            font-size: 0.82rem;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .ov-comment-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .ov-comment-action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.72rem;
+            color: #757575;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0;
+            transition: color 0.2s;
+        }
+
+        .ov-comment-action-btn:hover {
+            color: #000;
+        }
+
+        /* Hide side panels on small screens */
+        @media (max-width: 900px) {
+            .overlay-side {
+                display: none;
+            }
+
+            #overlay-scroll {
+                max-width: 100%;
+                padding: 1.5rem 1.2rem 3rem;
+            }
+        }
     </style>
 </head>
 
@@ -248,16 +636,16 @@
     <header id="nav" class="sticky top-0 z-50 bg-background border-b border-black/10">
         <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <!-- Brand -->
-            <a href="index.html" class="font-display text-3xl tracking-tighter leading-none">OD</a>
+            <a href="index.html" class="font-display text-3xl tracking-tighter leading-none">BARD</a>
 
             <!-- Desktop nav -->
             <nav class="hidden md:flex gap-8 items-center text-sm">
                 <a href="index.html" class="nav-link">Home</a>
-                <a href="index.html#eatables" class="nav-link">Eatables</a>
-                <a href="index.html#wearables" class="nav-link">Wearables</a>
-                <a href="index.html#about" class="nav-link">About</a>
                 <a href="blogs.html" class="nav-link font-bold">Blog</a>
-                <a href="index.html#contact" class="nav-link">Contact</a>
+                <a href="following.html" class="nav-link">Following</a>
+                <a href="post.html" class="nav-link">Post</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a href="index.html#about" class="nav-link">About</a>
             </nav>
 
             <!-- Trailing actions -->
@@ -280,12 +668,12 @@
         <!-- Mobile menu -->
         <div id="mobile-menu"
             class="hidden md:hidden bg-background border-t border-black/10 px-6 py-4 flex flex-col gap-4 text-sm">
-            <a href="index.html" class="">Home</a>
-            <a href="index.html#eatables">Eatables</a>
-            <a href="index.html#wearables">Wearables</a>
-            <a href="index.html#about">About</a>
+            <a href="index.html">Home</a>
             <a href="blogs.html" class="font-bold">Blog</a>
-            <a href="index.html#contact">Contact</a>
+            <a href="following.html">Following</a>
+            <a href="post.html">Post</a>
+            <a href="profile.html">Profile</a>
+            <a href="index.html#about">About</a>
             <a href="login.html">Log In</a>
             <a href="signup.html" class="btn-primary bg-black text-white text-center py-2 font-semibold">Sign Up</a>
         </div>
@@ -316,13 +704,15 @@
             <div id="topic-banner">
                 <div>
                     <p class="text-xs font-semibold tracking-widest uppercase opacity-60 mb-0.5">Filtered by topic</p>
-                    <p id="topic-label" class="font-display text-lg uppercase" style="transform:scaleX(1.06);transform-origin:left;display:inline-block;"></p>
+                    <p id="topic-label" class="font-display text-lg uppercase"
+                        style="transform:scaleX(1.06);transform-origin:left;display:inline-block;"></p>
                 </div>
                 <button id="topic-clear" aria-label="Clear topic filter">&times; Clear filter</button>
             </div>
             <div id="no-results">No posts match your search.</div>
             <!-- Post 1 -->
-            <div class="blog-card" data-title="the gut-brain connection" data-tags="gut health nutrition" data-topic="gut">
+            <div class="blog-card" data-title="the gut-brain connection" data-tags="gut health nutrition"
+                data-topic="gut">
                 <article class="bg-brand-card-bg flex flex-col md:flex-row h-[400px] overflow-hidden shadow-sm">
                     <div class="md:w-[55%] h-full bg-[#5C7A6E] relative overflow-hidden">
                         <span class="read-badge">4 min read</span>
@@ -446,7 +836,8 @@
                 </article>
             </div><!-- end .blog-card -->
             <!-- Post 3 -->
-            <div class="blog-card" data-title="sleep the ultimate recovery tool" data-tags="sleep wellness recovery" data-topic="sleep">
+            <div class="blog-card" data-title="sleep the ultimate recovery tool" data-tags="sleep wellness recovery"
+                data-topic="sleep">
                 <article class="bg-brand-card-bg flex flex-col md:flex-row h-[400px] overflow-hidden shadow-sm">
                     <div class="md:w-[55%] h-full bg-[#3D5A80] relative overflow-hidden">
                         <span class="read-badge">3 min read</span>
@@ -511,7 +902,8 @@
                 </article>
             </div><!-- end .blog-card -->
             <!-- Post 4 -->
-            <div class="blog-card" data-title="why slow fashion wins" data-tags="fashion sustainability wearables" data-topic="fashion">
+            <div class="blog-card" data-title="why slow fashion wins" data-tags="fashion sustainability wearables"
+                data-topic="fashion">
                 <article class="bg-brand-card-bg flex flex-col md:flex-row h-[400px] overflow-hidden shadow-sm">
                     <div class="md:w-[55%] h-full bg-[#7B5E7B] overflow-hidden">
                         <span class="read-badge">6 min read</span>
@@ -576,17 +968,129 @@
     <!-- FOOTER -->
     <footer
         class="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-on-surface-variant border-t border-black/10 mt-12">
-        <a href="index.html" class="font-display text-2xl text-primary tracking-tighter">OD</a>
+        <a href="index.html" class="font-display text-2xl text-primary tracking-tighter">BARD</a>
         <nav class="flex flex-wrap gap-6 justify-center">
             <a href="index.html" class="nav-link">Home</a>
-            <a href="index.html#eatables" class="nav-link">Eatables</a>
-            <a href="index.html#wearables" class="nav-link">Wearables</a>
+            <a href="index.html#pillars" class="nav-link">Wellness</a>
+            <a href="index.html#topics" class="nav-link">Topics</a>
             <a href="blogs.html" class="nav-link">Blog</a>
             <a href="login.html" class="nav-link">Log In</a>
             <a href="signup.html" class="nav-link">Sign Up</a>
         </nav>
-        <p>&copy; 2026 OD. All rights reserved.</p>
+        <p>&copy; 2026 BARD. All rights reserved.</p>
     </footer>
+
+    <!-- ════════════════════════════════════════
+         POST READER OVERLAY
+    ════════════════════════════════════════ -->
+    <div id="post-overlay" aria-modal="true" role="dialog" aria-label="Blog post reader">
+        <!-- Decorative side panels -->
+        <div id="overlay-bg-left" class="overlay-side"></div>
+        <div id="overlay-bg-right" class="overlay-side"></div>
+
+        <!-- Scrollable center column -->
+        <div id="overlay-scroll">
+            <!-- Back link -->
+            <button id="overlay-close" aria-label="Back to all posts">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                All Posts
+            </button>
+
+            <!-- Article -->
+            <article id="overlay-article">
+                <!-- Author row -->
+                <div class="ov-author-row">
+                    <img id="ov-avatar" src="" alt="Author avatar" />
+                    <div>
+                        <span id="ov-author" class="ov-author-name"></span>
+                        <span class="ov-dot">&middot;</span>
+                        <span id="ov-date" class="ov-meta"></span>
+                        <span class="ov-dot">&middot;</span>
+                        <span id="ov-read" class="ov-meta"></span>
+                    </div>
+                </div>
+
+                <!-- Title -->
+                <h1 id="ov-title" class="ov-title"></h1>
+
+                <!-- Hero image -->
+                <div id="ov-hero" class="ov-hero"></div>
+
+                <!-- Body -->
+                <div id="ov-body" class="ov-body"></div>
+
+                <!-- Stats + Share -->
+                <div class="ov-stats-row">
+                    <div class="ov-stats">
+                        <span id="ov-views"></span>
+                        <span id="ov-comments-count"></span>
+                    </div>
+                    <div class="ov-share">
+                        <button class="ov-share-btn" title="Share on Facebook">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+                            </svg>
+                        </button>
+                        <button class="ov-share-btn" title="Share on X">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                            </svg>
+                        </button>
+                        <button class="ov-share-btn" title="Share on LinkedIn">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z" />
+                                <circle cx="4" cy="4" r="2" />
+                            </svg>
+                        </button>
+                        <button class="ov-share-btn" title="Copy link">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </article>
+
+            <!-- ── Recent Posts ── -->
+            <section class="ov-recent">
+                <div class="ov-recent-header">
+                    <h2 class="ov-section-title">Recent Posts</h2>
+                    <a href="blogs.html" class="ov-see-all">See All</a>
+                </div>
+                <div id="ov-recent-grid" class="ov-recent-grid"></div>
+            </section>
+
+            <!-- ── Comments ── -->
+            <section class="ov-comments">
+                <h2 class="ov-section-title" id="ov-comment-heading">Comments</h2>
+
+                <!-- Write comment -->
+                <div class="ov-comment-input-wrap">
+                    <textarea id="ov-comment-input" placeholder="Write a comment..." rows="2"></textarea>
+                    <button id="ov-comment-submit">Post</button>
+                </div>
+
+                <!-- Sort -->
+                <div class="ov-sort-row">
+                    <span class="ov-sort-label">Sort by:</span>
+                    <select id="ov-sort" class="ov-sort-select">
+                        <option>Newest</option>
+                        <option>Top</option>
+                        <option>Oldest</option>
+                    </select>
+                </div>
+
+                <!-- Comment list -->
+                <div id="ov-comment-list"></div>
+            </section>
+        </div>
+    </div>
 
     <script>
         // ── Mobile menu ──
@@ -604,20 +1108,8 @@
             bar.style.width = (total > 0 ? (scrolled / total) * 100 : 0) + '%';
         });
 
-        // ── Scroll reveal (IntersectionObserver) ──
         const cards = document.querySelectorAll('.blog-card');
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach((entry, i) => {
-                if (entry.isIntersecting) {
-                    setTimeout(() => entry.target.classList.add('visible'), i * 120);
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.12 });
-        cards.forEach(card => observer.observe(card));
 
-        // ── Animated like buttons ──
-        // Replace static like divs with interactive buttons
         document.querySelectorAll('.blog-card').forEach((card, idx) => {
             const likeCounts = [41, 19, 67, 35];
             const likeContainer = card.querySelector('.flex.items-center.space-x-1');
@@ -681,7 +1173,6 @@
             noResults.style.display = visibleCount === 0 ? 'block' : 'none';
         }
 
-        // ── Subtle 3-D card tilt on mouse move ──
         cards.forEach(card => {
             const article = card.querySelector('article');
             card.addEventListener('mousemove', (e) => {
@@ -690,7 +1181,7 @@
                 const y = e.clientY - rect.top;
                 const cx = rect.width / 2;
                 const cy = rect.height / 2;
-                const rotateX = ((y - cy) / cy) * -3;   // max ±3deg
+                const rotateX = ((y - cy) / cy) * -3;
                 const rotateY = ((x - cx) / cx) * 3;
                 article.style.transform = `translateY(-8px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
                 article.style.transition = 'transform 0.1s ease';
@@ -699,6 +1190,252 @@
                 article.style.transform = '';
                 article.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
             });
+        });
+
+        // ══════════════════════════════════════════════════════
+        //   POST READER OVERLAY
+        // ══════════════════════════════════════════════════════
+
+        const POSTS = [
+            {
+                id: 'gut',
+                title: 'The Gut-Brain Connection',
+                author: 'Priya Nair',
+                avatar: 'https://i.pravatar.cc/64?img=5',
+                date: 'Jun 10, 2022',
+                read: '4 min read',
+                views: '3,847 views',
+                img: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=900&auto=format&fit=crop',
+                color: '#5C7A6E',
+                body: `
+                    <p>Your gut is your second brain — and the science behind this statement is more compelling than most people realise. The gut-brain axis is a two-way communication highway between your enteric nervous system and your central nervous system.</p>
+                    <h2>Why Your Gut Matters</h2>
+                    <p>Roughly 95% of your body's serotonin is produced in the gut. This means that what you eat doesn't just affect how you feel physically — it directly shapes your mood, focus, and mental resilience.</p>
+                    <blockquote>"A diverse microbiome is one of the best indicators of overall health." — Dr. Emeran Mayer</blockquote>
+                    <p>Research shows that people with diets rich in fermented foods, fibre, and diverse plant matter report significantly lower rates of anxiety and depression compared to those eating processed, low-fibre diets.</p>
+                    <h2>What to Eat</h2>
+                    <p>Focus on variety: aim for 30 different plants a week. Include fermented staples like yoghurt, kefir, kimchi, and sauerkraut. Add prebiotic foods like garlic, onions, and oats — these feed the beneficial bacteria already living in your gut.</p>
+                    <p>Reduce ultra-processed foods, artificial sweeteners, and excessive alcohol. These are consistently linked to reduced microbiome diversity and increased gut permeability — sometimes called "leaky gut."</p>
+                    <h2>The Takeaway</h2>
+                    <p>Small, consistent dietary shifts compound over time. Start by adding one fermented food and five new plant varieties per week. Your gut — and your mind — will thank you for it.</p>
+                `,
+                comments: [
+                    { name: 'Rohan Mehta', avatar: 'https://i.pravatar.cc/40?img=11', date: 'Jun 12, 2022', text: 'This completely changed how I approach my morning meals. Started adding kimchi to everything!', likes: 14 },
+                    { name: 'Anika Sharma', avatar: 'https://i.pravatar.cc/40?img=21', date: 'Jun 14, 2022', text: 'The 30 plants a week challenge sounds daunting but once I started counting, I was already at 18. Great motivator.', likes: 9 },
+                    { name: 'Dev Kapoor', avatar: 'https://i.pravatar.cc/40?img=33', date: 'Jun 18, 2022', text: 'Would love a follow-up on the gut-sleep connection specifically. Amazing article regardless.', likes: 6 }
+                ]
+            },
+            {
+                id: 'meal',
+                title: 'Meal Prep Like a Pro',
+                author: 'Arjun Mehta',
+                avatar: 'https://i.pravatar.cc/64?img=12',
+                date: 'Aug 3, 2022',
+                read: '5 min read',
+                views: '2,190 views',
+                img: 'https://images.unsplash.com/photo-1543352634-99a5d50ae78e?w=900&auto=format&fit=crop',
+                color: '#A07850',
+                body: `
+                    <p>Sunday meal prep sounds like a chore — until you experience the calm of opening your fridge on a Wednesday evening and finding everything you need, ready and waiting. That calm is worth building a routine around.</p>
+                    <h2>The 90-Minute Rule</h2>
+                    <p>You don't need an entire day. A well-planned 90-minute session can produce five balanced, delicious meals. The key is batch cooking proteins and grains, then mixing components throughout the week for variety.</p>
+                    <blockquote>"Failing to prepare is preparing to fail — especially when hunger strikes at 8pm." </blockquote>
+                    <p>Choose one grain (brown rice, quinoa, farro), one protein (roast chicken, baked tofu, lentils), and three to four vegetables. Roast the vegetables together, cook the grain, and store separately. The combinations are endless.</p>
+                    <h2>Container Strategy</h2>
+                    <p>Invest in glass containers of two sizes: 500ml for lunches and 900ml for dinners. Label everything with the date. Use a lazy Susan in your fridge so nothing gets buried and forgotten.</p>
+                    <h2>The Takeaway</h2>
+                    <p>Start small. Prep just lunch for the week on your first attempt. Once that becomes second nature, add dinners. Within a month, you'll have reclaimed hours of your week and be eating better than ever.</p>
+                `,
+                comments: [
+                    { name: 'Sunita Rao', avatar: 'https://i.pravatar.cc/40?img=44', date: 'Aug 5, 2022', text: 'The 90-minute rule is a game changer. I always thought meal prep required half a Sunday.', likes: 22 },
+                    { name: 'Vikram Nair', avatar: 'https://i.pravatar.cc/40?img=55', date: 'Aug 9, 2022', text: 'Glass containers recommendation is spot on. Switched from plastic last month and everything tastes fresher.', likes: 11 }
+                ]
+            },
+            {
+                id: 'sleep',
+                title: 'Sleep: The Ultimate Recovery Tool',
+                author: 'Leena Shah',
+                avatar: 'https://i.pravatar.cc/64?img=22',
+                date: 'Jan 15, 2023',
+                read: '3 min read',
+                views: '5,502 views',
+                img: 'https://images.unsplash.com/photo-1531353826977-0941b4779a1c?w=900&auto=format&fit=crop',
+                color: '#3D5A80',
+                body: `
+                    <p>We live in a culture that glorifies busyness and treats sleep as an optional luxury. The science says otherwise — sleep is the single most powerful performance-enhancing tool available to every human being, completely free of charge.</p>
+                    <h2>What Happens When You Sleep</h2>
+                    <p>During deep sleep, your brain clears metabolic waste products through the glymphatic system — think of it as a nightly pressure wash for your neurons. Memory consolidation, hormone regulation, tissue repair, and immune calibration all happen primarily during sleep.</p>
+                    <blockquote>"Sleep is the Swiss Army knife of health." — Matthew Walker, Why We Sleep</blockquote>
+                    <p>Chronic sleep deprivation — even just six hours a night over two weeks — impairs cognitive function to the same degree as 24 hours of total sleep deprivation. Most people simply can't tell how impaired they are.</p>
+                    <h2>Foods That Help You Sleep</h2>
+                    <p>Tart cherries, kiwi, and fatty fish are rich in natural melatonin or the nutrients that support its production. Magnesium — found in pumpkin seeds, spinach, and dark chocolate — activates the parasympathetic nervous system, helping you wind down.</p>
+                    <h2>The Non-Negotiables</h2>
+                    <p>Keep a consistent wake time seven days a week. Even on weekends. This one habit, more than any supplement or sleep hack, does the most to regulate your circadian rhythm and improve your sleep quality over time.</p>
+                `,
+                comments: [
+                    { name: 'Karan Singh', avatar: 'https://i.pravatar.cc/40?img=7', date: 'Jan 17, 2023', text: 'The consistent wake time tip changed my life. Three weeks in and I fall asleep in under 10 minutes every night now.', likes: 38 },
+                    { name: 'Meera Pillai', avatar: 'https://i.pravatar.cc/40?img=19', date: 'Jan 20, 2023', text: 'Finally someone explaining the glymphatic system simply. Share this with everyone you know who brags about sleeping 5 hours.', likes: 27 },
+                    { name: 'Aditya Rao', avatar: 'https://i.pravatar.cc/40?img=66', date: 'Jan 25, 2023', text: 'Matthew Walker\'s book is incredible. This article is a great summary for people who haven\'t read it yet.', likes: 15 },
+                    { name: 'Tanya Gupta', avatar: 'https://i.pravatar.cc/40?img=48', date: 'Feb 2, 2023', text: 'Started eating two kiwis before bed after reading this. Absolutely notice a difference in how quickly I feel sleepy.', likes: 19 }
+                ]
+            },
+            {
+                id: 'fashion',
+                title: 'Why Slow Fashion Wins',
+                author: 'Riya Desai',
+                avatar: 'https://i.pravatar.cc/64?img=33',
+                date: 'Apr 2, 2023',
+                read: '6 min read',
+                views: '1,874 views',
+                img: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=900&auto=format&fit=crop',
+                color: '#7B5E7B',
+                body: `
+                    <p>The fashion industry produces 92 million tonnes of textile waste every year. Behind that number are overflowing landfills, polluted rivers, and garment workers paid wages that can't sustain a dignified life. Slow fashion isn't just an aesthetic — it's a response to this crisis.</p>
+                    <h2>What Slow Fashion Actually Means</h2>
+                    <p>Slow fashion means buying less, buying better, and wearing things for longer. It means understanding where your clothes come from, who made them, and what they're made of. It means treating a well-made garment the way previous generations did — as something valuable and long-lasting.</p>
+                    <blockquote>"The most sustainable garment is the one already in your wardrobe."</blockquote>
+                    <p>Natural fibres — organic cotton, linen, wool, and hemp — biodegrade at the end of their life and breathe better against your skin. Synthetic fabrics like polyester shed microplastics with every wash, entering waterways and eventually food chains.</p>
+                    <h2>A Simple Framework</h2>
+                    <p>Before any purchase, ask yourself three questions: Will I wear this at least 30 times? Could I find this second-hand? Is the brand transparent about its supply chain? If the answer to all three is uncertain, wait a week. You'll often find the impulse fades.</p>
+                    <h2>Starting Points</h2>
+                    <p>Begin by auditing your wardrobe. Pull out everything you haven't worn in a year and donate or sell it. Identify the gaps — real gaps, not wishful thinking gaps. Then fill them intentionally, with pieces built to last.</p>
+                `,
+                comments: [
+                    { name: 'Ishaan Verma', avatar: 'https://i.pravatar.cc/40?img=52', date: 'Apr 4, 2023', text: 'The 30-wears question is something I now ask myself every single time. It\'s stopped at least four impulse purchases this month alone.', likes: 17 },
+                    { name: 'Priya Menon', avatar: 'https://i.pravatar.cc/40?img=29', date: 'Apr 7, 2023', text: 'Audited my wardrobe after reading this. Donated 40 items. Feel lighter already.', likes: 31 }
+                ]
+            }
+        ];
+
+        // Overlay DOM references
+        const overlay = document.getElementById('post-overlay');
+        const overlayClose = document.getElementById('overlay-close');
+        const ovBgLeft = document.getElementById('overlay-bg-left');
+        const ovBgRight = document.getElementById('overlay-bg-right');
+        const ovScroll = document.getElementById('overlay-scroll');
+        const ovAvatar = document.getElementById('ov-avatar');
+        const ovAuthor = document.getElementById('ov-author');
+        const ovDate = document.getElementById('ov-date');
+        const ovRead = document.getElementById('ov-read');
+        const ovTitle = document.getElementById('ov-title');
+        const ovHero = document.getElementById('ov-hero');
+        const ovBody = document.getElementById('ov-body');
+        const ovViews = document.getElementById('ov-views');
+        const ovCommCount = document.getElementById('ov-comments-count');
+        const ovRecentGrid = document.getElementById('ov-recent-grid');
+        const ovCommentList = document.getElementById('ov-comment-list');
+        const ovCommentHead = document.getElementById('ov-comment-heading');
+        const ovCommentInput = document.getElementById('ov-comment-input');
+        const ovCommentSubmit = document.getElementById('ov-comment-submit');
+
+        function openPost(postId) {
+            const post = POSTS.find(p => p.id === postId);
+            if (!post) return;
+
+            // Populate fields
+            ovAvatar.src = post.avatar;
+            ovAuthor.textContent = post.author;
+            ovDate.textContent = post.date;
+            ovRead.textContent = post.read;
+            ovTitle.textContent = post.title;
+            ovHero.style.backgroundImage = `url('${post.img}')`;
+            ovBody.innerHTML = post.body;
+            ovViews.textContent = post.views;
+            ovCommCount.textContent = `${post.comments.length} comments`;
+            ovCommentHead.textContent = `${post.comments.length} Comments`;
+
+            // Side panels — use post image as blurred background
+            const bgStyle = `url('${post.img}')`;
+            ovBgLeft.style.backgroundImage = bgStyle;
+            ovBgRight.style.backgroundImage = bgStyle;
+
+            // Recent posts (all others)
+            const others = POSTS.filter(p => p.id !== postId);
+            ovRecentGrid.innerHTML = others.map(p => `
+                <div class="ov-recent-card" onclick="openPost('${p.id}')">
+                    <img class="ov-recent-img" src="${p.img}" alt="${p.title}" />
+                    <p class="ov-recent-title">${p.title}</p>
+                    <p class="ov-recent-meta">${p.date} · ${p.read}</p>
+                </div>
+            `).join('');
+
+            // Comments
+            renderComments(post.comments.slice());
+
+            // Show overlay
+            overlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            ovScroll.scrollTop = 0;
+        }
+
+        function renderComments(comments) {
+            ovCommentList.innerHTML = comments.map((c, i) => `
+                <div class="ov-comment">
+                    <img class="ov-comment-avatar" src="${c.avatar}" alt="${c.name}" />
+                    <div class="ov-comment-body">
+                        <div class="ov-comment-header">
+                            <span class="ov-comment-name">${c.name}</span>
+                            <span class="ov-comment-date">${c.date}</span>
+                        </div>
+                        <p class="ov-comment-text">${c.text}</p>
+                        <div class="ov-comment-actions">
+                            <button class="ov-comment-action-btn" onclick="likeComment(this, ${c.likes})">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/><path stroke-linecap="round" stroke-linejoin="round" d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
+                                <span class="like-num">${c.likes}</span>
+                            </button>
+                            <button class="ov-comment-action-btn">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                                Reply
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function likeComment(btn, baseCount) {
+            const isLiked = btn.classList.toggle('liked');
+            btn.querySelector('.like-num').textContent = isLiked ? baseCount + 1 : baseCount;
+            btn.style.color = isLiked ? '#000' : '';
+        }
+
+        function closePost() {
+            overlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        // Wire card clicks → open overlay
+        cards.forEach(card => {
+            const topic = card.dataset.topic;
+            if (!topic) return;
+            card.querySelector('article').addEventListener('click', () => openPost(topic));
+            card.style.cursor = 'pointer';
+        });
+
+        // Close handlers
+        overlayClose.addEventListener('click', closePost);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closePost(); });
+
+        // Submit new comment (adds to top of list)
+        ovCommentSubmit.addEventListener('click', () => {
+            const text = ovCommentInput.value.trim();
+            if (!text) return;
+            const newComment = {
+                name: 'You',
+                avatar: 'https://i.pravatar.cc/40?img=1',
+                date: 'Just now',
+                text,
+                likes: 0
+            };
+            const existing = Array.from(ovCommentList.querySelectorAll('.ov-comment')).length;
+            ovCommentHead.textContent = `${existing + 1} Comments`;
+            // Prepend new comment
+            const tempWrapper = document.createElement('div');
+            renderComments([newComment]);
+            const newHtml = ovCommentList.innerHTML;
+            const originalPost = POSTS.find(p => p.id === overlay.dataset.currentPost);
+            if (originalPost) renderComments([newComment, ...originalPost.comments]);
+            ovCommentInput.value = '';
         });
     </script>
 </body>

@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>OD — Organic &amp; Delicious</title>
-    <meta name="description" content="OD — where organic meets delicious. Discover nutrient-dense eatables, curated meal plans, and wholesome wearables crafted for mindful living." />
+    <title>BARD — Slow Down. Live Fully.</title>
+    <meta name="description" content="BARD — a mindful living journal. Stories, guides, and honest conversations about slowing down, finding balance, and living a life you actually enjoy." />
     <link
         href="https://fonts.googleapis.com/css2?family=Anton&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
         rel="stylesheet" />
@@ -44,17 +44,6 @@
         }
         .nav-link:hover::after { width: 100%; }
 
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(28px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-        .animate-slide-up { animation: slideUp 0.75s ease forwards; }
-        .delay-100 { animation-delay: 0.1s; opacity: 0; }
-        .delay-200 { animation-delay: 0.2s; opacity: 0; }
-        .delay-300 { animation-delay: 0.3s; opacity: 0; }
-        .delay-400 { animation-delay: 0.4s; opacity: 0; }
-        .delay-500 { animation-delay: 0.5s; opacity: 0; }
-
         @keyframes marquee {
             from { transform: translateX(0); }
             to   { transform: translateX(-50%); }
@@ -76,7 +65,6 @@
         }
         .btn-primary:hover::after { transform: scaleX(1); }
 
-        /* ── Trending Topic Cards ── */
         .topic-card {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -162,16 +150,15 @@
     <!-- NAV -->
     <header id="nav" class="sticky top-0 z-50 bg-background border-b border-black/10">
         <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <a href="index.html" class="font-display text-3xl tracking-tighter leading-none">OD</a>
+            <a href="index.html" class="font-display text-3xl tracking-tighter leading-none">BARD</a>
 
             <nav class="hidden md:flex gap-8 items-center text-sm">
-                <a href="index.html"  class="nav-link font-bold">Home</a>
-                <a href="#eatables"   class="nav-link">Eatables</a>
-                <a href="#wearables"  class="nav-link">Wearables</a>
-                <a href="#about"      class="nav-link">About</a>
-                <a href="#topics"     class="nav-link">Topics</a>
-                <a href="blogs.html"  class="nav-link">Blog</a>
-                <a href="#contact"    class="nav-link">Contact</a>
+                <a href="index.html" class="nav-link font-bold">Home</a>
+                <a href="blogs.html" class="nav-link">Blog</a>
+                <a href="following.html" class="nav-link">Following</a>
+                <a href="post.html" class="nav-link">Post</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a href="index.html#about" class="nav-link">About</a>
             </nav>
 
             <div class="flex items-center gap-5">
@@ -190,13 +177,12 @@
         </div>
 
         <div id="mobile-menu" class="hidden md:hidden bg-background border-t border-black/10 px-6 py-4 flex flex-col gap-4 text-sm">
-            <a href="index.html"  class="font-bold">Home</a>
-            <a href="#eatables">Eatables</a>
-            <a href="#wearables">Wearables</a>
-            <a href="#about">About</a>
-            <a href="#topics">Topics</a>
+            <a href="index.html" class="font-bold">Home</a>
             <a href="blogs.html">Blog</a>
-            <a href="#contact">Contact</a>
+            <a href="following.html">Following</a>
+            <a href="post.html">Post</a>
+            <a href="profile.html">Profile</a>
+            <a href="index.html#about">About</a>
             <a href="login.html">Log In</a>
             <a href="signup.html" class="btn-primary bg-black text-white text-center py-2 font-semibold">Sign Up</a>
         </div>
@@ -205,12 +191,12 @@
     <!-- HERO -->
     <section class="max-w-7xl mx-auto px-6 py-16 md:py-24 grid md:grid-cols-2 gap-12 items-center">
 
-        <div class="animate-slide-up delay-100 relative flex justify-center">
+        <div class="relative flex justify-center">
             <div class="relative w-full max-w-md">
                 <div class="absolute inset-0 translate-x-4 translate-y-4 bg-black/10 rounded-sm"></div>
                 <img
-                    src="hero_food.jpg"
-                    alt="Organic wholesome food spread on linen"
+                    src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=900&auto=format&fit=crop"
+                    alt="Person relaxing in nature, reading in sunlight"
                     class="relative w-full object-cover"
                     style="aspect-ratio:3/2;"
                 />
@@ -218,39 +204,39 @@
         </div>
 
         <div class="flex flex-col gap-6">
-            <p class="animate-slide-up delay-200 text-xs font-semibold tracking-widest uppercase text-on-surface-variant">
-                Organic &amp; Delicious
+            <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant">
+                A Mindful Living Journal
             </p>
-            <h1 class="animate-slide-up delay-300 font-display text-6xl md:text-7xl lg:text-8xl leading-none"
+            <h1 class="font-display text-6xl md:text-7xl lg:text-8xl leading-none"
                 style="letter-spacing:-0.01em; transform: scaleX(1.08); transform-origin: left;">
-                Eat Well,<br>Live Well.
+                Slow Down,<br>Live Fully.
             </h1>
-            <p class="animate-slide-up delay-400 text-base text-on-surface-variant leading-relaxed max-w-sm">
-                Thoughtfully sourced, nutrient-dense products for people who take what they put in — and on — their bodies seriously.
+            <p class="text-base text-on-surface-variant leading-relaxed max-w-sm">
+                Honest stories, practical guides, and quiet inspiration for people who want less noise and more meaning in their daily lives.
             </p>
 
-            <ul class="animate-slide-up delay-400 flex flex-col gap-2 text-sm">
+            <ul class="flex flex-col gap-2 text-sm">
                 <li class="flex items-center gap-2">
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/></svg>
-                    100% organic, no hidden nasties
+                    Ideas for a calmer, more intentional life
                 </li>
                 <li class="flex items-center gap-2">
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/></svg>
-                    Adaptable to any diet or lifestyle
+                    Deep dives into wellness, sleep &amp; mindfulness
                 </li>
                 <li class="flex items-center gap-2">
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/></svg>
-                    Delivered fresh, every day
+                    New stories every week, no fluff
                 </li>
             </ul>
 
-            <div class="animate-slide-up delay-500 flex flex-wrap gap-4 items-center mt-2">
-                <a href="#eatables"
+            <div class="flex flex-wrap gap-4 items-center mt-2">
+                <a href="blogs.html"
                    class="btn-primary bg-black text-white font-semibold px-8 py-3 text-sm tracking-widest uppercase hover:bg-gray-800 transition-colors">
-                    Shop Now
+                    Read the Blog
                 </a>
-                <a href="blogs.html" class="text-sm font-medium underline underline-offset-4 hover:opacity-60 transition-opacity">
-                    Read Our Blog &rarr;
+                <a href="#topics" class="text-sm font-medium underline underline-offset-4 hover:opacity-60 transition-opacity">
+                    Browse Topics &rarr;
                 </a>
             </div>
         </div>
@@ -259,29 +245,29 @@
     <!-- MARQUEE STRIP -->
     <div class="border-y border-black py-3 overflow-hidden bg-black text-white">
         <div class="marquee-inner flex whitespace-nowrap text-xs font-semibold tracking-widest uppercase">
-            <span class="px-12">Organic Eatables</span>
+            <span class="px-12">Mindful Living</span>
             <span class="dot-divider px-4">&middot;</span>
-            <span class="px-12">Mindful Wearables</span>
+            <span class="px-12">Rest &amp; Recovery</span>
             <span class="dot-divider px-4">&middot;</span>
-            <span class="px-12">Farm to Table</span>
+            <span class="px-12">Slow Mornings</span>
             <span class="dot-divider px-4">&middot;</span>
-            <span class="px-12">Zero Additives</span>
+            <span class="px-12">Mental Clarity</span>
             <span class="dot-divider px-4">&middot;</span>
-            <span class="px-12">Sustainable Living</span>
+            <span class="px-12">Intentional Days</span>
             <span class="dot-divider px-4">&middot;</span>
-            <span class="px-12">Free Delivery</span>
+            <span class="px-12">Journal &amp; Reflect</span>
             <span class="dot-divider px-4">&middot;</span>
-            <span class="px-12">Organic Eatables</span>
+            <span class="px-12">Mindful Living</span>
             <span class="dot-divider px-4">&middot;</span>
-            <span class="px-12">Mindful Wearables</span>
+            <span class="px-12">Rest &amp; Recovery</span>
             <span class="dot-divider px-4">&middot;</span>
-            <span class="px-12">Farm to Table</span>
+            <span class="px-12">Slow Mornings</span>
             <span class="dot-divider px-4">&middot;</span>
-            <span class="px-12">Zero Additives</span>
+            <span class="px-12">Mental Clarity</span>
             <span class="dot-divider px-4">&middot;</span>
-            <span class="px-12">Sustainable Living</span>
+            <span class="px-12">Intentional Days</span>
             <span class="dot-divider px-4">&middot;</span>
-            <span class="px-12">Free Delivery</span>
+            <span class="px-12">Journal &amp; Reflect</span>
             <span class="dot-divider px-4">&middot;</span>
         </div>
     </div>
@@ -415,61 +401,61 @@
         </div>
     </section>
 
-    <!-- FEATURES -->
-    <section id="eatables" class="max-w-7xl mx-auto px-6 py-20">
+    <!-- PILLARS -->
+    <section id="pillars" class="max-w-7xl mx-auto px-6 py-20">
         <div class="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
-                <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant mb-2">Why OD</p>
+                <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant mb-2">What We Believe</p>
                 <h2 class="font-display text-5xl md:text-6xl" style="transform:scaleX(1.08);transform-origin:left;">
-                    What We Stand For
+                    The BARD Philosophy
                 </h2>
             </div>
             <a href="#about" class="text-sm underline underline-offset-4 hover:opacity-60 transition-opacity self-start md:self-auto">
-                Learn more &rarr;
+                Our story &rarr;
             </a>
         </div>
 
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div class="feature-card bg-white border border-black/10 p-8 flex flex-col gap-4">
+                <div class="text-3xl">&#127774;</div>
+                <h3 class="font-display text-2xl" style="transform:scaleX(1.08);transform-origin:left;">Slow Mornings</h3>
+                <p class="text-sm text-on-surface-variant leading-relaxed">
+                    The first hour sets the tone for the whole day. We believe in protecting mornings — no rush, no notifications, just presence.
+                </p>
+            </div>
+            <div class="feature-card bg-white border border-black/10 p-8 flex flex-col gap-4">
+                <div class="text-3xl">&#129504;</div>
+                <h3 class="font-display text-2xl" style="transform:scaleX(1.08);transform-origin:left;">Mental Clarity</h3>
+                <p class="text-sm text-on-surface-variant leading-relaxed">
+                    A quieter mind makes better decisions. Our guides on journaling, breathwork, and digital detox help you think more clearly.
+                </p>
+            </div>
+            <div class="feature-card bg-white border border-black/10 p-8 flex flex-col gap-4">
+                <div class="text-3xl">&#128716;</div>
+                <h3 class="font-display text-2xl" style="transform:scaleX(1.08);transform-origin:left;">Deep Rest</h3>
+                <p class="text-sm text-on-surface-variant leading-relaxed">
+                    Sleep is not laziness — it is the foundation of everything. We cover the science and rituals of truly restorative rest.
+                </p>
+            </div>
+            <div class="feature-card bg-white border border-black/10 p-8 flex flex-col gap-4">
                 <div class="text-3xl">&#127807;</div>
-                <h3 class="font-display text-2xl" style="transform:scaleX(1.08);transform-origin:left;">100% Organic</h3>
+                <h3 class="font-display text-2xl" style="transform:scaleX(1.08);transform-origin:left;">Time in Nature</h3>
                 <p class="text-sm text-on-surface-variant leading-relaxed">
-                    Every product is certified organic — sourced from farms that treat soil, water, and people with respect.
+                    Sunlight, fresh air, bare feet on grass — the simplest remedies are often the most profound. We write about getting outside.
                 </p>
             </div>
             <div class="feature-card bg-white border border-black/10 p-8 flex flex-col gap-4">
-                <div class="text-3xl">&#129367;</div>
-                <h3 class="font-display text-2xl" style="transform:scaleX(1.08);transform-origin:left;">Diet-Friendly</h3>
+                <div class="text-3xl">&#128218;</div>
+                <h3 class="font-display text-2xl" style="transform:scaleX(1.08);transform-origin:left;">Read More</h3>
                 <p class="text-sm text-on-surface-variant leading-relaxed">
-                    Vegan, keto, gluten-free — our range adapts to your unique nutritional needs without compromise.
+                    Books, long-form essays, and analogue habits. We champion the lost art of reading slowly, deeply, and without a screen in hand.
                 </p>
             </div>
             <div class="feature-card bg-white border border-black/10 p-8 flex flex-col gap-4">
-                <div class="text-3xl">&#128666;</div>
-                <h3 class="font-display text-2xl" style="transform:scaleX(1.08);transform-origin:left;">Fresh Delivery</h3>
+                <div class="text-3xl">&#128140;</div>
+                <h3 class="font-display text-2xl" style="transform:scaleX(1.08);transform-origin:left;">Journal Daily</h3>
                 <p class="text-sm text-on-surface-variant leading-relaxed">
-                    Cold-chain logistics ensure your order reaches you at peak freshness — every single time.
-                </p>
-            </div>
-            <div class="feature-card bg-white border border-black/10 p-8 flex flex-col gap-4">
-                <div class="text-3xl">&#129525;</div>
-                <h3 class="font-display text-2xl" style="transform:scaleX(1.08);transform-origin:left;">Conscious Wear</h3>
-                <p class="text-sm text-on-surface-variant leading-relaxed">
-                    Our wearables are crafted from natural fibres — because what touches your skin matters as much as what feeds you.
-                </p>
-            </div>
-            <div class="feature-card bg-white border border-black/10 p-8 flex flex-col gap-4">
-                <div class="text-3xl">&#9851;</div>
-                <h3 class="font-display text-2xl" style="transform:scaleX(1.08);transform-origin:left;">Zero Waste</h3>
-                <p class="text-sm text-on-surface-variant leading-relaxed">
-                    Packaging is 100% compostable or recycled. We are working toward a fully circular supply chain.
-                </p>
-            </div>
-            <div class="feature-card bg-white border border-black/10 p-8 flex flex-col gap-4">
-                <div class="text-3xl">&#129309;</div>
-                <h3 class="font-display text-2xl" style="transform:scaleX(1.08);transform-origin:left;">Community First</h3>
-                <p class="text-sm text-on-surface-variant leading-relaxed">
-                    A portion of every sale supports local farmers and sustainable agriculture initiatives across India.
+                    Writing is thinking. A daily journaling practice can reduce anxiety, sharpen focus, and help you understand yourself better.
                 </p>
             </div>
         </div>
@@ -478,13 +464,13 @@
     <!-- FULL-WIDTH BANNER -->
     <section id="about" class="bg-black text-white py-24 px-6">
         <div class="max-w-5xl mx-auto text-center flex flex-col items-center gap-6">
-            <p class="text-xs font-semibold tracking-widest uppercase opacity-60">Our Story</p>
+            <p class="text-xs font-semibold tracking-widest uppercase opacity-60">Why We Write</p>
             <h2 class="font-display text-5xl md:text-7xl leading-none" style="transform:scaleX(1.08);transform-origin:center;">
-                Food is Medicine.<br>Wear is Armour.
+                Words are Power.<br>Rest is Radical.
             </h2>
             <p class="text-sm text-white/70 leading-relaxed max-w-xl">
-                OD was born from a simple belief — the choices we make every day, from breakfast to bedtime, shape who we are.
-                We exist to make those choices easier, better, and more beautiful.
+                BARD was built on one belief — that in a world addicted to speed, choosing to slow down is an act of courage.
+                We write for people who are done with hustle culture and ready to build something quieter, and better.
             </p>
             <a href="signup.html"
                class="mt-4 border border-white text-white text-sm font-semibold tracking-widest uppercase px-10 py-3 hover:bg-white hover:text-black transition-colors">
@@ -496,12 +482,12 @@
     <!-- NEWSLETTER -->
     <section id="contact" class="max-w-7xl mx-auto px-6 py-20 grid md:grid-cols-2 gap-12 items-center border-b border-black/10">
         <div>
-            <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant mb-3">Stay in the loop</p>
+            <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant mb-3">Stay grounded</p>
             <h2 class="font-display text-4xl md:text-5xl" style="transform:scaleX(1.08);transform-origin:left;">
-                Get Weekly<br>Goodness.
+                Weekly Words<br>Worth Reading.
             </h2>
             <p class="mt-4 text-sm text-on-surface-variant leading-relaxed max-w-sm">
-                Recipes, restocks, and exclusive member offers — delivered to your inbox. No spam. Ever.
+                One thoughtful email a week. New stories, quiet recommendations, and ideas for living better — no spam, no noise. Ever.
             </p>
         </div>
         <form action="#" method="POST" class="flex flex-col gap-6 w-full max-w-md">
@@ -516,16 +502,16 @@
 
     <!-- FOOTER -->
     <footer class="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-on-surface-variant">
-        <a href="index.html" class="font-display text-2xl text-primary tracking-tighter">OD</a>
+        <a href="index.html" class="font-display text-2xl text-primary tracking-tighter">BARD</a>
         <nav class="flex flex-wrap gap-6 justify-center">
             <a href="index.html"  class="nav-link">Home</a>
-            <a href="#eatables"   class="nav-link">Eatables</a>
-            <a href="#wearables"  class="nav-link">Wearables</a>
+            <a href="#pillars"    class="nav-link">Wellness</a>
+            <a href="#topics"     class="nav-link">Topics</a>
             <a href="blogs.html"  class="nav-link">Blog</a>
             <a href="login.html"  class="nav-link">Log In</a>
             <a href="signup.html" class="nav-link">Sign Up</a>
         </nav>
-        <p>&copy; 2026 OD. All rights reserved.</p>
+        <p>&copy; 2026 BARD. All rights reserved.</p>
     </footer>
 
     <script>
