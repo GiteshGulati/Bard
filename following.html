@@ -188,9 +188,9 @@
     <main class="max-w-5xl mx-auto px-6 py-10 md:py-14">
         <!-- Page Header -->
         <div class="mb-10">
-            <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant mb-2">Community</p>
+            <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant mb-2">Stay Connected</p>
             <h1 class="font-display text-5xl md:text-6xl leading-none"
-                style="transform:scaleX(1.08);transform-origin:left;">Following</h1>
+                style="transform:scaleX(1.08);transform-origin:left;">Community</h1>
             <p class="text-sm text-on-surface-variant mt-3 max-w-lg">
                 Writers and ideas worth your time. Follow people whose stories resonate, and never miss a post.
             </p>
@@ -198,16 +198,25 @@
 
         <!-- Tab Bar -->
         <div class="flex gap-6 mb-8 border-b border-black/10">
-            <button id="tab-writers" class="tab-btn pb-3 text-sm font-bold border-b-2 border-black cursor-pointer">
-                Writers
-            </button>
-            <button id="tab-feed" class="tab-btn pb-3 text-sm font-medium text-on-surface-variant border-b-2 border-transparent cursor-pointer transition-colors hover:text-black">
+            <button id="tab-feed" class="tab-btn pb-3 text-sm font-bold border-b-2 border-black cursor-pointer">
                 Latest Posts
+            </button>
+            <button id="tab-writers" class="tab-btn pb-3 text-sm font-medium text-on-surface-variant border-b-2 border-transparent cursor-pointer transition-colors hover:text-black">
+                Writers
             </button>
         </div>
 
+        <!-- Feed Panel (default) -->
+        <div id="panel-feed">
+            <div id="feed-list" class="space-y-4"></div>
+            <p id="feed-empty" class="hidden text-sm text-on-surface-variant text-center py-16">
+                Follow some writers to see their posts here.
+                <a href="#tab-writers" class="underline underline-offset-4 text-primary font-medium" onclick="switchTab('writers')">Browse writers &rarr;</a>
+            </p>
+        </div>
+
         <!-- Writers Panel -->
-        <div id="panel-writers">
+        <div id="panel-writers" class="hidden">
             <div class="flex items-center justify-between mb-6">
                 <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant">
                     <span id="following-count">0</span> people followed
@@ -217,15 +226,6 @@
                 </button>
             </div>
             <div id="writers-grid" class="space-y-4"></div>
-        </div>
-
-        <!-- Feed Panel -->
-        <div id="panel-feed" class="hidden">
-            <div id="feed-list" class="space-y-4"></div>
-            <p id="feed-empty" class="hidden text-sm text-on-surface-variant text-center py-16">
-                Follow some writers to see their posts here.
-                <a href="#tab-writers" class="underline underline-offset-4 text-primary font-medium" onclick="switchTab('writers')">Browse writers &rarr;</a>
-            </p>
         </div>
     </main>
 
