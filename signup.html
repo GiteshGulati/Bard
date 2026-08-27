@@ -65,12 +65,12 @@
 
 <body class="bg-background text-primary font-body min-h-screen flex flex-col relative">
     <!-- Close Icon (Absolute positioned based on image) -->
-    <button aria-label="Close" class="absolute top-8 right-8 text-primary hover:opacity-70 transition-opacity">
+    <a aria-label="Close" href="index.html" class="absolute top-8 right-8 text-primary hover:opacity-70 transition-opacity">
         <svg class="w-10 h-10 font-thin" fill="none" stroke="currentColor" stroke-width="1.5" viewbox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg">
             <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"></path>
         </svg>
-    </button>
+    </a>
     <!-- BEGIN: TopAppBar -->
     <header class="w-full top-0 sticky bg-background border-none px-6 py-4 max-w-7xl mx-auto z-10 hidden"
         data-purpose="top-app-bar">
@@ -141,6 +141,43 @@
         </div>
     </main>
     <!-- END: Main Content -->
+    <script src="auth.js"></script>
+    <script>
+        if (BardAuth.isLoggedIn()) {
+            window.location.href = 'profile.html';
+        }
+        document.querySelector('form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            var firstName = document.getElementById('firstName').value;
+            var lastName = document.getElementById('lastName').value;
+            var email = document.getElementById('email').value;
+            var password = document.getElementById('password').value;
+            if (password.length < 6) {
+                var existing = document.getElementById('auth-error');
+                if (existing) existing.remove();
+                var err = document.createElement('p');
+                err.id = 'auth-error';
+                err.className = 'text-sm text-center mt-2';
+                err.style.color = '#F87171';
+                err.textContent = 'Password must be at least 6 characters.';
+                document.querySelector('form').appendChild(err);
+                return;
+            }
+            var result = BardAuth.signup(firstName, lastName, email, password);
+            if (result.ok) {
+                window.location.href = 'profile.html';
+            } else {
+                var existing2 = document.getElementById('auth-error');
+                if (existing2) existing2.remove();
+                var err2 = document.createElement('p');
+                err2.id = 'auth-error';
+                err2.className = 'text-sm text-center mt-2';
+                err2.style.color = '#F87171';
+                err2.textContent = result.error;
+                document.querySelector('form').appendChild(err2);
+            }
+        });
+    </script>
 </body>
 
 </html>

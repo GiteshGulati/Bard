@@ -218,11 +218,13 @@
             </nav>
 
             <div class="flex items-center gap-5">
-                <a href="login.html" class="hidden md:block text-sm font-medium nav-link">Log In</a>
-                <a href="signup.html"
+                <a href="login.html" data-auth-logged-out class="hidden md:block text-sm font-medium nav-link">Log In</a>
+                <a href="signup.html" data-auth-logged-out
                     class="btn-primary bg-black text-white text-sm font-semibold px-5 py-2 hidden md:block hover:bg-gray-800 transition-colors">
                     Sign Up
                 </a>
+                <a href="profile.html" data-auth-logged-in class="hidden md:block text-sm font-medium nav-link">Profile</a>
+                <button data-auth-logged-in onclick="BardAuth.logout()" class="hidden md:block text-sm font-medium nav-link">Log Out</button>
                 <button aria-label="Shopping Bag" class="hover:opacity-60 transition-opacity">
                     <span class="material-symbols-outlined" style="font-size:22px">shopping_bag</span>
                 </button>
@@ -240,8 +242,10 @@
             <a href="post.html" class="font-bold">Post</a>
             <a href="profile.html">Profile</a>
             <a href="index.html#about">About</a>
-            <a href="login.html">Log In</a>
-            <a href="signup.html" class="btn-primary bg-black text-white text-center py-2 font-semibold">Sign Up</a>
+            <a href="login.html" data-auth-logged-out>Log In</a>
+            <a href="signup.html" data-auth-logged-out class="btn-primary bg-black text-white text-center py-2 font-semibold">Sign Up</a>
+            <a href="profile.html" data-auth-logged-in>Profile</a>
+            <button data-auth-logged-in onclick="BardAuth.logout()" class="text-left">Log Out</button>
         </div>
     </header>
 
@@ -365,13 +369,21 @@
             <a href="post.html" class="nav-link">Post</a>
             <a href="login.html" class="nav-link">Log In</a>
             <a href="signup.html" class="nav-link">Sign Up</a>
+            <a href="profile.html" data-auth-logged-in class="nav-link">Profile</a>
         </nav>
         <p>&copy; 2026 BARD. All rights reserved.</p>
     </footer>
 
     <div id="toast" role="status"></div>
 
+    <script src="auth.js"></script>
     <script>
+        BardAuth.updateNav();
+        var currentUser = BardAuth.getUser();
+        if (currentUser) {
+            var authorLabel = document.querySelector('#preview-date');
+        }
+
         const DEFAULT_COVER = 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&auto=format&fit=crop';
         const DRAFT_KEY = 'bard-draft';
         const POSTS_KEY = 'bard-posts';
