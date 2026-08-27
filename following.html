@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Following — BARD</title>
+    <meta name="description" content="People you follow on BARD — their stories, ideas, and slower ways of living." />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Anton&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#F2EBE1',
+                        primary: '#000000',
+                        'on-background': '#FFFFFF',
+                        'on-surface-variant': '#6B7280',
+                        'brand-card-bg': '#FDFCFB',
+                        'brand-gray': '#757575',
+                        'brand-border': '#E0DCD6'
+                    },
+                    fontFamily: {
+                        display: ['Anton', 'Arial Black', 'sans-serif'],
+                        body: ['Arial', 'Helvetica', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+
+        .nav-link { position: relative; text-decoration: none; }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            left: 0; bottom: -2px;
+            width: 0; height: 1px;
+            background: #000;
+            transition: width 0.25s ease;
+        }
+        .nav-link:hover::after { width: 100%; }
+
+        .btn-primary { position: relative; overflow: hidden; }
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.12);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+        .btn-primary:hover::after { transform: scaleX(1); }
+
+        .topic-tag {
+            display: inline-block;
+            border: 1px solid #000;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .follow-btn {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 8px 20px;
+            border: 1px solid #000;
+            background: transparent;
+            color: #000;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .follow-btn:hover { background: #000; color: #fff; }
+        .follow-btn.active {
+            background: #000;
+            color: #fff;
+        }
+        .follow-btn.active:hover {
+            background: transparent;
+            color: #000;
+        }
+
+        .writer-card {
+            background: #FDFCFB;
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            min-height: 160px;
+            overflow: hidden;
+            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.35s ease, border-color 0.35s ease;
+            border: 2px solid transparent;
+        }
+        .writer-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+            border-color: #000;
+        }
+        .writer-card .writer-img {
+            overflow: hidden;
+        }
+        .writer-card .writer-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .writer-card:hover .writer-img img { transform: scale(1.06); }
+
+        .post-row {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            background: #FDFCFB;
+            min-height: 140px;
+            overflow: hidden;
+            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.35s ease;
+            border: 2px solid transparent;
+        }
+        .post-row:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+            border-color: #000;
+        }
+        @media (max-width: 640px) {
+            .writer-card { grid-template-columns: 80px 1fr; min-height: 140px; }
+            .post-row { grid-template-columns: 1fr; }
+            .post-row img { height: 180px; width: 100%; }
+        }
+    </style>
+</head>
+
+<body class="bg-background text-primary font-body min-h-screen">
+
+    <header id="nav" class="sticky top-0 z-50 bg-background border-b border-black/10">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="index.html" class="font-display text-3xl tracking-tighter leading-none">BARD</a>
+
+            <nav class="hidden md:flex gap-8 items-center text-sm">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="blogs.html" class="nav-link">Blog</a>
+                <a href="following.html" class="nav-link font-bold">Following</a>
+                <a href="post.html" class="nav-link">Post</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a href="index.html#about" class="nav-link">About</a>
+            </nav>
+
+            <div class="flex items-center gap-5">
+                <a href="login.html" data-auth-logged-out class="hidden md:block text-sm font-medium nav-link">Log In</a>
+                <a href="signup.html" data-auth-logged-out
+                    class="btn-primary bg-black text-white text-sm font-semibold px-5 py-2 hidden md:block hover:bg-gray-800 transition-colors">
+                    Sign Up
+                </a>
+                <a href="profile.html" data-auth-logged-in class="hidden md:block text-sm font-medium nav-link">Profile</a>
+                <button data-auth-logged-in onclick="BardAuth.logout()" class="hidden md:block text-sm font-medium nav-link">Log Out</button>
+                <button aria-label="Shopping Bag" class="hover:opacity-60 transition-opacity">
+                    <span class="material-symbols-outlined" style="font-size:22px">shopping_bag</span>
+                </button>
+                <button id="menu-btn" aria-label="Open menu" class="md:hidden">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-menu"
+            class="hidden md:hidden bg-background border-t border-black/10 px-6 py-4 flex flex-col gap-4 text-sm">
+            <a href="index.html">Home</a>
+            <a href="blogs.html">Blog</a>
+            <a href="following.html" class="font-bold">Following</a>
+            <a href="post.html">Post</a>
+            <a href="profile.html">Profile</a>
+            <a href="index.html#about">About</a>
+            <a href="login.html" data-auth-logged-out>Log In</a>
+            <a href="signup.html" data-auth-logged-out class="btn-primary bg-black text-white text-center py-2 font-semibold">Sign Up</a>
+            <a href="profile.html" data-auth-logged-in>Profile</a>
+            <button data-auth-logged-in onclick="BardAuth.logout()" class="text-left">Log Out</button>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-6 py-10 md:py-14">
+        <!-- Page Header -->
+        <div class="mb-10">
+            <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant mb-2">Community</p>
+            <h1 class="font-display text-5xl md:text-6xl leading-none"
+                style="transform:scaleX(1.08);transform-origin:left;">Following</h1>
+            <p class="text-sm text-on-surface-variant mt-3 max-w-lg">
+                Writers and ideas worth your time. Follow people whose stories resonate, and never miss a post.
+            </p>
+        </div>
+
+        <!-- Tab Bar -->
+        <div class="flex gap-6 mb-8 border-b border-black/10">
+            <button id="tab-writers" class="tab-btn pb-3 text-sm font-bold border-b-2 border-black cursor-pointer">
+                Writers
+            </button>
+            <button id="tab-feed" class="tab-btn pb-3 text-sm font-medium text-on-surface-variant border-b-2 border-transparent cursor-pointer transition-colors hover:text-black">
+                Latest Posts
+            </button>
+        </div>
+
+        <!-- Writers Panel -->
+        <div id="panel-writers">
+            <div class="flex items-center justify-between mb-6">
+                <p class="text-xs font-semibold tracking-widest uppercase text-on-surface-variant">
+                    <span id="following-count">0</span> people followed
+                </p>
+                <button id="select-all-btn" class="text-xs font-bold tracking-widest uppercase text-on-surface-variant hover:text-black transition-colors cursor-pointer">
+                    Follow All
+                </button>
+            </div>
+            <div id="writers-grid" class="space-y-4"></div>
+        </div>
+
+        <!-- Feed Panel -->
+        <div id="panel-feed" class="hidden">
+            <div id="feed-list" class="space-y-4"></div>
+            <p id="feed-empty" class="hidden text-sm text-on-surface-variant text-center py-16">
+                Follow some writers to see their posts here.
+                <a href="#tab-writers" class="underline underline-offset-4 text-primary font-medium" onclick="switchTab('writers')">Browse writers &rarr;</a>
+            </p>
+        </div>
+    </main>
+
+    <footer
+        class="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-on-surface-variant border-t border-black/10 mt-12">
+        <a href="index.html" class="font-display text-2xl text-primary tracking-tighter">BARD</a>
+        <nav class="flex flex-wrap gap-6 justify-center">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="blogs.html" class="nav-link">Blog</a>
+            <a href="following.html" class="nav-link">Following</a>
+            <a href="post.html" class="nav-link">Post</a>
+            <a href="profile.html" class="nav-link">Profile</a>
+        </nav>
+        <p>&copy; 2026 BARD. All rights reserved.</p>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script>
+        BardAuth.updateNav();
+
+        // ── Mobile menu ──
+        document.getElementById('menu-btn').addEventListener('click', () => {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
+
+        // ── Writers Data ──
+        const WRITERS = [
+            {
+                id: 'priya',
+                name: 'Priya Nair',
+                avatar: 'https://i.pravatar.cc/160?img=5',
+                bio: 'Writing about gut health, nutrition, and the quiet power of eating well.',
+                topics: ['Gut Health', 'Nutrition', 'Wellness'],
+                color: '#5C7A6E',
+                posts: [
+                    { title: 'The Gut-Brain Connection', excerpt: 'Your gut is your second brain. Discover how a diverse, fibre-rich diet can transform your wellbeing from the inside out.', topicLabel: 'Gut Health', cover: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&auto=format&fit=crop', date: 'Jun 10, 2022', read: '4 min read' },
+                    { title: 'Fermented Foods 101', excerpt: 'A beginner-friendly guide to incorporating kimchi, kefir, and sauerkraut into your daily meals.', topicLabel: 'Nutrition', cover: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800&auto=format&fit=crop', date: 'Aug 22, 2022', read: '6 min read' }
+                ]
+            },
+            {
+                id: 'arjun',
+                name: 'Arjun Mehta',
+                avatar: 'https://i.pravatar.cc/160?img=12',
+                bio: 'Batch cooking, seasonal ingredients, and making peace with your kitchen.',
+                topics: ['Meal Prep', 'Cooking', 'Organic'],
+                color: '#A07850',
+                posts: [
+                    { title: 'Meal Prep Like a Pro', excerpt: 'Stop wasting Sunday evenings on last-minute cooking. A step-by-step guide to batch-cooking wholesome, organic meals.', topicLabel: 'Meal Prep', cover: 'https://images.unsplash.com/photo-1543352634-99a5d50ae78e?w=800&auto=format&fit=crop', date: 'Aug 3, 2022', read: '5 min read' },
+                    { title: 'One Pot, Thirty Meals', excerpt: 'How a single Dutch oven became the most-used tool in my kitchen — and saved me hours every week.', topicLabel: 'Cooking', cover: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&auto=format&fit=crop', date: 'Oct 15, 2022', read: '4 min read' }
+                ]
+            },
+            {
+                id: 'leena',
+                name: 'Leena Shah',
+                avatar: 'https://i.pravatar.cc/160?img=22',
+                bio: 'Sleep science, evening routines, and the art of doing less with more intention.',
+                topics: ['Sleep', 'Recovery', 'Mindfulness'],
+                color: '#3D5A80',
+                posts: [
+                    { title: 'Sleep: The Ultimate Recovery Tool', excerpt: 'Quality sleep is the most powerful recovery tool you have. Learn how nutrition and routine can help you rest deeper.', topicLabel: 'Sleep', cover: 'https://images.unsplash.com/photo-1531353826977-0941b4779a1c?w=800&auto=format&fit=crop', date: 'Jan 15, 2023', read: '3 min read' },
+                    { title: 'Wind Down, Not Out', excerpt: 'A two-hour evening routine that changed everything — from blue light to breathwork to bedtime tea.', topicLabel: 'Recovery', cover: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=800&auto=format&fit=crop', date: 'Mar 8, 2023', read: '5 min read' }
+                ]
+            },
+            {
+                id: 'riya',
+                name: 'Riya Desai',
+                avatar: 'https://i.pravatar.cc/160?img=33',
+                bio: 'Slow fashion, natural fibres, and building a wardrobe that lasts a lifetime.',
+                topics: ['Fashion', 'Sustainability', 'Lifestyle'],
+                color: '#7B5E7B',
+                posts: [
+                    { title: 'Why Slow Fashion Wins', excerpt: 'Fast fashion harms the planet — and your skin. The case for natural-fibre wearables that look better and last longer.', topicLabel: 'Fashion', cover: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&auto=format&fit=crop', date: 'Apr 2, 2023', read: '6 min read' },
+                    { title: 'Ten Pieces, Thirty Outfits', excerpt: 'How a curated capsule wardrobe simplified my mornings and reduced my environmental footprint.', topicLabel: 'Sustainability', cover: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=800&auto=format&fit=crop', date: 'Jul 19, 2023', read: '4 min read' }
+                ]
+            },
+            {
+                id: 'anika',
+                name: 'Anika Rao',
+                avatar: 'https://i.pravatar.cc/160?img=44',
+                bio: 'Morning rituals, digital detox, and finding stillness in a noisy world.',
+                topics: ['Mindfulness', 'Mental Health', 'Focus'],
+                color: '#4A5D4E',
+                posts: [
+                    { title: 'Mornings Without a Phone', excerpt: 'The first hour of the day sets the tone for everything that follows. Here is the quiet ritual that stuck.', topicLabel: 'Mindfulness', cover: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&auto=format&fit=crop', date: 'Mar 12, 2026', read: '4 min read' },
+                    { title: 'The 30-Day Digital Detox', excerpt: 'What happened when I deleted social media for a month — and what I brought back, and what I did not.', topicLabel: 'Mental Health', cover: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=800&auto=format&fit=crop', date: 'May 5, 2026', read: '7 min read' }
+                ]
+            },
+            {
+                id: 'rohan',
+                name: 'Rohan Kapoor',
+                avatar: 'https://i.pravatar.cc/160?img=51',
+                bio: 'Journaling, breathwork, and the quiet practice of paying attention.',
+                topics: ['Mindfulness', 'Journaling', 'Wellness'],
+                color: '#82915F',
+                posts: [
+                    { title: 'Write Before You Wake', excerpt: 'Three pages of longhand, stream-of-consciousness writing every morning. The practice that rewired my brain.', topicLabel: 'Journaling', cover: 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=800&auto=format&fit=crop', date: 'Feb 20, 2026', read: '3 min read' },
+                    { title: 'Breathwork for Beginners', excerpt: 'You do not need a retreat or an app. Just five minutes, a quiet room, and this simple four-step technique.', topicLabel: 'Wellness', cover: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?w=800&auto=format&fit=crop', date: 'Apr 14, 2026', read: '4 min read' }
+                ]
+            }
+        ];
+
+        // ── Follow State ──
+        const FOLLOW_KEY = 'bard-following';
+        let followed = new Set(JSON.parse(localStorage.getItem(FOLLOW_KEY) || '[]'));
+
+        function saveFollowed() {
+            localStorage.setItem(FOLLOW_KEY, JSON.stringify([...followed]));
+        }
+
+        // ── Render Writers ──
+        function renderWriters() {
+            const grid = document.getElementById('writers-grid');
+            document.getElementById('following-count').textContent = followed.size;
+
+            const allFollowed = followed.size === WRITERS.length;
+            const selectAllBtn = document.getElementById('select-all-btn');
+            selectAllBtn.textContent = allFollowed ? 'Unfollow All' : 'Follow All';
+
+            grid.innerHTML = WRITERS.map(w => {
+                const isFollowed = followed.has(w.id);
+                return `
+                    <div class="writer-card" data-writer="${w.id}">
+                        <div class="writer-img" style="background:${w.color};">
+                            <img src="${w.avatar}" alt="${w.name}" class="mix-blend-multiply opacity-85" />
+                        </div>
+                        <div class="p-5 md:p-6 flex flex-col justify-between">
+                            <div>
+                                <h3 class="font-display text-xl md:text-2xl uppercase leading-[1.15] mb-1">${w.name}</h3>
+                                <p class="text-sm text-brand-gray leading-relaxed mb-3 line-clamp-2">${w.bio}</p>
+                                <div class="mb-3">
+                                    ${w.topics.map(t => `<span class="topic-tag">${t}</span>`).join('')}
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs text-brand-gray">${w.posts.length} post${w.posts.length !== 1 ? 's' : ''}</p>
+                                <button class="follow-btn ${isFollowed ? 'active' : ''}" data-writer-id="${w.id}">
+                                    ${isFollowed ? 'Following' : 'Follow'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            grid.querySelectorAll('.follow-btn').forEach(btn => {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const id = this.dataset.writerId;
+                    if (followed.has(id)) {
+                        followed.delete(id);
+                    } else {
+                        followed.add(id);
+                    }
+                    saveFollowed();
+                    renderWriters();
+                    renderFeed();
+                });
+            });
+        }
+
+        // ── Render Feed ──
+        function renderFeed() {
+            const list = document.getElementById('feed-list');
+            const empty = document.getElementById('feed-empty');
+
+            const posts = [];
+            WRITERS.forEach(w => {
+                if (followed.has(w.id)) {
+                    w.posts.forEach(p => {
+                        posts.push({ ...p, author: w.name, avatar: w.avatar, color: w.color });
+                    });
+                }
+            });
+
+            posts.sort((a, b) => {
+                return new Date(b.date) - new Date(a.date);
+            });
+
+            if (!posts.length) {
+                list.classList.add('hidden');
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            list.classList.remove('hidden');
+            empty.classList.add('hidden');
+
+            list.innerHTML = posts.map(p => `
+                <article class="post-row">
+                    <div class="h-full min-h-[140px] overflow-hidden" style="background:${p.color};">
+                        <img src="${p.cover}" alt="" class="w-full h-full object-cover mix-blend-multiply opacity-80" />
+                    </div>
+                    <div class="p-5 md:p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <img src="${p.avatar}" alt="${p.author}" class="w-5 h-5 rounded-full" />
+                                <p class="text-xs text-brand-gray">${p.author} &middot; ${p.date} &middot; ${p.read}</p>
+                            </div>
+                            <h3 class="font-display text-xl md:text-2xl uppercase leading-[1.15] mb-2">${p.title}</h3>
+                            <p class="text-sm text-brand-gray leading-relaxed line-clamp-2">${p.excerpt}</p>
+                        </div>
+                        <p class="text-xs font-semibold tracking-widest uppercase text-brand-gray mt-3">${p.topicLabel}</p>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        // ── Tabs ──
+        function switchTab(tab) {
+            const writersTab = document.getElementById('tab-writers');
+            const feedTab = document.getElementById('tab-feed');
+            const writersPanel = document.getElementById('panel-writers');
+            const feedPanel = document.getElementById('panel-feed');
+
+            if (tab === 'writers') {
+                writersTab.classList.add('font-bold', 'border-black');
+                writersTab.classList.remove('font-medium', 'text-on-surface-variant', 'border-transparent');
+                feedTab.classList.add('font-medium', 'text-on-surface-variant', 'border-transparent');
+                feedTab.classList.remove('font-bold', 'border-black');
+                writersPanel.classList.remove('hidden');
+                feedPanel.classList.add('hidden');
+            } else {
+                feedTab.classList.add('font-bold', 'border-black');
+                feedTab.classList.remove('font-medium', 'text-on-surface-variant', 'border-transparent');
+                writersTab.classList.add('font-medium', 'text-on-surface-variant', 'border-transparent');
+                writersTab.classList.remove('font-bold', 'border-black');
+                feedPanel.classList.remove('hidden');
+                writersPanel.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('tab-writers').addEventListener('click', () => switchTab('writers'));
+        document.getElementById('tab-feed').addEventListener('click', () => switchTab('feed'));
+
+        // ── Follow All ──
+        document.getElementById('select-all-btn').addEventListener('click', () => {
+            const allFollowed = followed.size === WRITERS.length;
+            if (allFollowed) {
+                followed.clear();
+            } else {
+                WRITERS.forEach(w => followed.add(w.id));
+            }
+            saveFollowed();
+            renderWriters();
+            renderFeed();
+        });
+
+        // ── Init ──
+        renderWriters();
+        renderFeed();
+    </script>
+</body>
+
+</html>
