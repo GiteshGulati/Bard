@@ -1416,6 +1416,128 @@
         overlayClose.addEventListener('click', closePost);
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closePost(); });
 
+        // ══════════════════════════════════════════════════════
+        //   INJECT USER-PUBLISHED POSTS FROM localStorage
+        // ══════════════════════════════════════════════════════
+
+        (function injectUserPosts() {
+            const POSTS_KEY = 'bard-posts';
+            let userPosts = [];
+            try {
+                userPosts = JSON.parse(localStorage.getItem(POSTS_KEY) || '[]')
+                    .filter(p => p.status === 'published');
+            } catch (e) { return; }
+
+            if (!userPosts.length) return;
+
+            const list = document.querySelector('[data-purpose="blog-posts-list"]');
+            if (!list) return;
+
+            userPosts.forEach(post => {
+                // ── Build card HTML matching existing .blog-card structure ──
+                const cover = post.cover || 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&auto=format&fit=crop';
+                const color = post.topicColor || '#5C7A6E';
+                const topicLabel = (post.topicLabel || post.topic || '').toUpperCase();
+                const readTime = post.read || '1 min read';
+                const date = post.date || '';
+                const title = post.title || 'Untitled';
+                const excerpt = post.excerpt || '';
+                const safeId = 'user-' + post.id;
+
+                const cardEl = document.createElement('div');
+                cardEl.className = 'blog-card';
+                cardEl.dataset.title = title.toLowerCase();
+                cardEl.dataset.tags = (post.topicLabel || post.topic || '').toLowerCase();
+                cardEl.dataset.topic = post.topic || '';
+                cardEl.dataset.userId = post.id;
+
+                cardEl.innerHTML = `
+                    <article class="bg-brand-card-bg flex flex-col md:flex-row h-[400px] overflow-hidden shadow-sm">
+                        <div class="md:w-[55%] h-full relative overflow-hidden" style="background:${color};">
+                            <span class="read-badge">${readTime}</span>
+                            <img alt="${title}" class="card-img w-full h-full object-cover mix-blend-multiply opacity-80"
+                                src="${cover}" onerror="this.style.display='none'" />
+                            <div class="absolute inset-0 flex flex-col items-center justify-end pb-8 text-white font-display text-center uppercase tracking-widest text-base px-4 overflow-hidden">
+                                <p>${topicLabel}</p>
+                            </div>
+                        </div>
+                        <div class="md:w-[45%] p-10 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-6">
+                                    <div class="flex items-center space-x-3">
+                                        <img alt="You" class="w-8 h-8 rounded-full" src="https://i.pravatar.cc/32?img=68" />
+                                        <div class="text-xs text-brand-gray">
+                                            <p class="font-medium text-gray-800">You</p>
+                                            <p>${date} · ${readTime}</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-[10px] font-bold tracking-widest uppercase bg-black text-white px-2 py-0.5">Your Post</span>
+                                </div>
+                                <h2 class="block font-display text-2xl md:text-3xl uppercase leading-[1.15] mb-4 text-[#2A2A2A] overflow-hidden">
+                                    ${title}
+                                </h2>
+                                ${excerpt ? `<p class="text-brand-gray text-sm leading-relaxed mb-4 line-clamp-3">${excerpt}</p>` : ''}
+                            </div>
+                            <div>
+                                <div class="h-px bg-brand-border w-full mb-4"></div>
+                                <div class="flex items-center justify-between text-xs text-brand-gray">
+                                    <div class="flex space-x-4">
+                                        <span>${post.words || 0} words</span>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <button class="like-btn" aria-label="Like post" data-count="0">
+                                            <span class="like-count">0</span>
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                                    stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </article>`;
+
+                // Append to posts list
+                list.appendChild(cardEl);
+
+                // ── Wire like button ──
+                const likeBtn = cardEl.querySelector('.like-btn');
+                likeBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const isLiked = this.classList.toggle('liked');
+                    const countEl = this.querySelector('.like-count');
+                    let n = parseInt(this.dataset.count);
+                    n = isLiked ? n + 1 : n - 1;
+                    this.dataset.count = n;
+                    countEl.textContent = n;
+                });
+
+                // ── Add to POSTS array so overlay works ──
+                const overlayPost = {
+                    id: safeId,
+                    title: title,
+                    author: 'You',
+                    avatar: 'https://i.pravatar.cc/64?img=68',
+                    date: date,
+                    read: readTime,
+                    views: (post.words || 0) + ' words',
+                    img: cover,
+                    color: color,
+                    body: (post.body || '').split('\n\n')
+                        .filter(p => p.trim())
+                        .map(p => `<p>${p.trim().replace(/\n/g, '<br>')}</p>`)
+                        .join(''),
+                    comments: []
+                };
+                POSTS.push(overlayPost);
+
+                // ── Wire card click → overlay ──
+                cardEl.querySelector('article').addEventListener('click', () => openPost(safeId));
+                cardEl.style.cursor = 'pointer';
+            });
+        })();
+
         // Submit new comment (adds to top of list)
         ovCommentSubmit.addEventListener('click', () => {
             const text = ovCommentInput.value.trim();
