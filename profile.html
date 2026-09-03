@@ -90,6 +90,84 @@
             .story-row { grid-template-columns: 1fr; }
             .story-row img { height: 180px; width: 100%; }
         }
+
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal-panel {
+            background: #FDFCFB;
+            width: 90%; max-width: 520px;
+            max-height: 85vh; overflow-y: auto;
+            transform: translateY(20px);
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .modal-overlay.active .modal-panel { transform: translateY(0); }
+
+        .modal-input {
+            width: 100%; background: transparent;
+            border: none; border-bottom: 1px solid #000;
+            padding: 8px 0; font-size: 0.875rem;
+            font-family: Arial, Helvetica, sans-serif;
+            outline: none; transition: border-width 0.2s ease;
+        }
+        .modal-input:focus { border-bottom-width: 2px; }
+
+        .modal-label {
+            display: block; font-size: 0.65rem; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: #6B7280; margin-bottom: 4px;
+        }
+
+        .tag-input-wrap {
+            display: flex; flex-wrap: wrap; gap: 4px;
+            border-bottom: 1px solid #000; padding: 8px 0;
+            min-height: 36px; cursor: text;
+        }
+        .tag-input-wrap:focus-within { border-bottom-width: 2px; }
+        .tag-input-wrap .tag-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            border: 1px solid #000; font-size: 0.65rem; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            padding: 2px 8px;
+        }
+        .tag-chip button {
+            background: none; border: none; cursor: pointer;
+            font-size: 14px; line-height: 1; padding: 0; color: #000;
+        }
+        .tag-input-wrap input {
+            border: none; outline: none; background: transparent;
+            font-size: 0.875rem; flex: 1; min-width: 80px;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .avatar-upload {
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+            cursor: pointer; position: relative;
+        }
+        .avatar-upload .avatar-preview {
+            width: 96px; height: 96px; border-radius: 50%;
+            object-fit: cover; border: 2px dashed #000;
+            transition: border-color 0.2s ease, opacity 0.2s ease;
+            background: #EAE2D8;
+        }
+        .avatar-upload:hover .avatar-preview { border-color: #6B7280; }
+        .avatar-upload .avatar-label {
+            font-size: 0.65rem; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: #6B7280; text-align: center;
+        }
+        .avatar-upload input[type="file"] { display: none; }
+        .avatar-or {
+            font-size: 0.65rem; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: #6B7280;
+        }
     </style>
 </head>
 
@@ -163,10 +241,10 @@
                             class="btn-primary bg-black text-white text-sm font-semibold tracking-widest uppercase px-8 py-3 hover:bg-gray-800 transition-colors">
                             Write
                         </a>
-                        <a href="login.html"
-                            class="border border-black text-sm font-medium px-6 py-3 hover:bg-black hover:text-white transition-colors">
+                        <button id="edit-profile-btn"
+                            class="border border-black text-sm font-medium px-6 py-3 hover:bg-black hover:text-white transition-colors cursor-pointer">
                             Edit profile
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -203,6 +281,63 @@
         </p>
     </main>
 
+    <div id="edit-modal" class="modal-overlay">
+        <div class="modal-panel">
+            <div class="flex items-center justify-between p-8 pb-0">
+                <h2 class="font-display text-3xl" style="transform:scaleX(1.08);transform-origin:left;">Edit Profile</h2>
+                <button id="modal-close" class="hover:opacity-60 transition-opacity cursor-pointer">
+                    <span class="material-symbols-outlined" style="font-size:24px">close</span>
+                </button>
+            </div>
+            <form id="profile-form" class="p-8 space-y-6">
+                <div class="flex flex-col items-center">
+                    <label class="avatar-upload" id="avatar-label">
+                        <img id="avatar-preview" class="avatar-preview"
+                            src="https://i.pravatar.cc/160?img=68" alt="Avatar" />
+                        <span class="avatar-label">Click to upload photo</span>
+                        <input type="file" id="avatar-file" accept="image/*" />
+                    </label>
+                    <span class="avatar-or mt-1">— or paste a URL —</span>
+                    <div class="w-full mt-2">
+                        <label class="modal-label">Avatar URL</label>
+                        <input type="url" id="field-avatar" class="modal-input"
+                            placeholder="https://example.com/photo.jpg" />
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="modal-label">First Name</label>
+                        <input type="text" id="field-first" class="modal-input" required />
+                    </div>
+                    <div>
+                        <label class="modal-label">Last Name</label>
+                        <input type="text" id="field-last" class="modal-input" />
+                    </div>
+                </div>
+                <div>
+                    <label class="modal-label">Bio</label>
+                    <textarea id="field-bio" class="modal-input" rows="3" style="resize:vertical;"></textarea>
+                </div>
+                <div>
+                    <label class="modal-label">Topics <span class="text-on-surface-variant">(press Enter to add)</span></label>
+                    <div id="tag-input-wrap" class="tag-input-wrap">
+                        <input type="text" id="tag-input" placeholder="Add topic..." />
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="submit"
+                        class="btn-primary bg-black text-white text-sm font-semibold tracking-widest uppercase px-8 py-3 hover:bg-gray-800 transition-colors cursor-pointer">
+                        Save
+                    </button>
+                    <button type="button" id="modal-cancel"
+                        class="border border-black text-sm font-medium px-6 py-3 hover:bg-black hover:text-white transition-colors cursor-pointer">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <footer
         class="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-on-surface-variant border-t border-black/10 mt-12">
         <a href="index.html" class="font-display text-2xl text-primary tracking-tighter">BARD</a>
@@ -218,83 +353,7 @@
     </footer>
 
     <script src="auth.js"></script>
-    <script>
-        BardAuth.updateNav();
-        var currentUser = BardAuth.getUser();
-        if (currentUser) {
-            document.querySelector('h1').textContent = currentUser.firstName;
-            var avatar = document.querySelector('section img');
-            if (avatar) avatar.alt = currentUser.firstName;
-        }
-
-        const SAMPLE = [
-            {
-                title: 'Mornings Without a Phone',
-                excerpt: 'The first hour of the day sets the tone for everything that follows. Here is the quiet ritual that stuck.',
-                topicLabel: 'Mindfulness',
-                topicColor: '#4A5D4E',
-                cover: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&auto=format&fit=crop',
-                date: 'Mar 12, 2026',
-                read: '4 min read'
-            },
-            {
-                title: 'What I Eat When I Am Tired',
-                excerpt: 'Hunger plus exhaustion is a dangerous combination. A short list of meals that ask almost nothing of you.',
-                topicLabel: 'Meal Prep',
-                topicColor: '#A07850',
-                cover: 'https://images.unsplash.com/photo-1543352634-99a5d50ae78e?w=800&auto=format&fit=crop',
-                date: 'Jan 28, 2026',
-                read: '5 min read'
-            },
-            {
-                title: 'Sleep Is a Practice',
-                excerpt: 'Not a hack. Not a luxury. Notes from a year of going to bed at the same time, even on weekends.',
-                topicLabel: 'Sleep',
-                topicColor: '#3D5A80',
-                cover: 'https://images.unsplash.com/photo-1531353826977-0941b4779a1c?w=800&auto=format&fit=crop',
-                date: 'Nov 4, 2025',
-                read: '3 min read'
-            }
-        ];
-
-        let published = [];
-        try {
-            published = JSON.parse(localStorage.getItem('bard-posts') || '[]');
-        } catch (err) {
-            published = [];
-        }
-
-        const stories = [...published, ...SAMPLE];
-        document.getElementById('stat-posts').textContent = stories.length;
-
-        const list = document.getElementById('stories');
-        const empty = document.getElementById('empty');
-
-        if (!stories.length) {
-            list.classList.add('hidden');
-            empty.classList.remove('hidden');
-        } else {
-            list.innerHTML = stories.map((s) => `
-                <article class="story-row">
-                    <div class="h-full min-h-[140px] overflow-hidden" style="background:${s.topicColor || '#5C7A6E'};">
-                        <img src="${s.cover}" alt="" class="w-full h-full object-cover mix-blend-multiply opacity-80" />
-                    </div>
-                    <div class="p-5 md:p-6 flex flex-col justify-between">
-                        <div>
-                            <p class="text-xs text-brand-gray mb-2">${s.date || ''} · ${s.read || ''}</p>
-                            <h3 class="font-display text-xl md:text-2xl uppercase leading-[1.15] mb-2">${s.title}</h3>
-                            <p class="text-sm text-brand-gray leading-relaxed line-clamp-2">${s.excerpt || ''}</p>
-                        </div>
-                        <p class="text-xs font-semibold tracking-widest uppercase text-brand-gray mt-3">${s.topicLabel || s.topic || ''}</p>
-                    </div>
-                </article>
-            `).join('');
-        }
-
-        document.getElementById('menu-btn').addEventListener('click', () => {
-            document.getElementById('mobile-menu').classList.toggle('hidden');
-        });
-    </script>
+    <script src="js/profile.js"></script>
 </body>
 
 </html>
