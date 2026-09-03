@@ -1,10 +1,8 @@
         BardAuth.updateNav();
-        // ── Mobile menu ──
         const menuBtn = document.getElementById('menu-btn');
         const mobileMenu = document.getElementById('mobile-menu');
         menuBtn.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
 
-        // ── Reading progress bar ──
         const bar = document.createElement('div');
         bar.id = 'progress-bar';
         document.body.prepend(bar);
