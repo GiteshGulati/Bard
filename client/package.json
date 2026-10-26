@@ -1,0 +1,17 @@
+{
+  "name": "bard-client",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build --configLoader runner",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "quill": "^2.0.2"
+  },
+  "devDependencies": {
+    "vite": "^6.0.7"
+  }
+}

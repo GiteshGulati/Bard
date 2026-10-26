@@ -1,0 +1,25 @@
+{
+  "name": "bard",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Bard — a place for words, not clout.",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "start": "npm run start -w server",
+    "build": "npm run build -w client",
+    "test": "npm run test -w server",
+    "seed": "npm run seed -w server",
+    "email:verify": "npm run email:verify -w server",
+    "email:send-test": "npm run email:send-test -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
