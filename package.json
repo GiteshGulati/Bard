@@ -5,12 +5,13 @@
   "description": "Bard — a place for words, not clout.",
   "workspaces": [
     "client",
-    "server"
+    "server",
+    "bard-react"
   ],
   "scripts": {
-    "dev": "concurrently -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev": "concurrently -n server,react -c blue,green \"npm run dev -w server\" \"npm run dev -w bard-react\"",
     "start": "npm run start -w server",
-    "build": "npm run build -w client",
+    "build": "npm run build -w bard-react",
     "test": "npm run test -w server",
     "seed": "npm run seed -w server",
     "email:verify": "npm run email:verify -w server",

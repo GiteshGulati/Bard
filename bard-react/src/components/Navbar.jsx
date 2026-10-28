@@ -1,23 +1,20 @@
-import { useState } from 'react'
+﻿import { useState, useCallback } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { BardAuth } from '../auth'
+import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
+  const { user, logout } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [user, setUser] = useState(() => BardAuth.getUser())
   const navigate = useNavigate()
 
-  function handleLogout() {
-    BardAuth.logout()
-    setUser(null)
+  const handleLogout = useCallback(async () => {
+    try {
+      await logout()
+    } catch { /* ignore */ }
     navigate('/')
-  }
+  }, [logout, navigate])
 
-  // Re-check auth state whenever the menu toggles (simple reactive approach)
-  function toggleMenu() {
-    setUser(BardAuth.getUser())
-    setMenuOpen(m => !m)
-  }
+  function toggleMenu() { setMenuOpen(m => !m) }
 
   const linkCls = ({ isActive }) =>
     `nav-link text-sm${isActive ? ' font-bold' : ''}`
@@ -38,8 +35,8 @@ export default function Navbar() {
           <NavLink to="/"          className={linkCls}>Home</NavLink>
           <NavLink to="/blogs"     className={linkCls}>Blog</NavLink>
           <NavLink to="/following" className={linkCls}>Following</NavLink>
-          <NavLink to="/post"      className={linkCls}>Post</NavLink>
-          <NavLink to="/profile"   className={linkCls}>Profile</NavLink>
+          {user && <NavLink to="/post"    className={linkCls}>Post</NavLink>}
+          {user && <NavLink to="/profile" className={linkCls}>Profile</NavLink>}
           <a href="#about" className="nav-link" style={{ fontSize: '0.875rem' }}>About</a>
         </nav>
 
@@ -56,8 +53,12 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link to="/profile" className="nav-link" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Profile</Link>
-              <button onClick={handleLogout} className="nav-link" style={{ fontSize: '0.875rem', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>Log Out</button>
+              <Link to="/profile" className="nav-link" style={{ fontSize: '0.875rem', fontWeight: 500, display: 'none' }} id="desktop-profile">
+                {user.displayName || user.username}
+              </Link>
+              <button onClick={handleLogout} className="nav-link" style={{ fontSize: '0.875rem', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', display: 'none' }} id="desktop-logout">
+                Log Out
+              </button>
             </>
           )}
           <button aria-label="Shopping Bag" style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 1, transition: 'opacity 0.2s' }}
@@ -77,7 +78,7 @@ export default function Navbar() {
       {/* Auth-aware desktop links (CSS-driven show/hide) */}
       <style>{`
         @media (min-width: 768px) {
-          #desktop-login, #desktop-signup { display: block !important; }
+          #desktop-login, #desktop-signup, #desktop-profile, #desktop-logout { display: block !important; }
           #menu-btn { display: none !important; }
           .desktop-nav { display: flex !important; }
         }
@@ -92,8 +93,6 @@ export default function Navbar() {
           <Link to="/"          onClick={() => setMenuOpen(false)}>Home</Link>
           <Link to="/blogs"     onClick={() => setMenuOpen(false)} style={{ fontWeight: 700 }}>Blog</Link>
           <Link to="/following" onClick={() => setMenuOpen(false)}>Following</Link>
-          <Link to="/post"      onClick={() => setMenuOpen(false)}>Post</Link>
-          <Link to="/profile"   onClick={() => setMenuOpen(false)}>Profile</Link>
           {!user ? (
             <>
               <Link to="/login"  onClick={() => setMenuOpen(false)}>Log In</Link>
@@ -104,7 +103,8 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link to="/profile" onClick={() => setMenuOpen(false)}>Profile</Link>
+              <Link to="/post"     onClick={() => setMenuOpen(false)}>Post</Link>
+              <Link to="/profile"  onClick={() => setMenuOpen(false)}>Profile</Link>
               <button onClick={() => { handleLogout(); setMenuOpen(false) }} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}>Log Out</button>
             </>
           )}

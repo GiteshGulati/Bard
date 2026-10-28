@@ -1,52 +1,73 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+﻿import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { POSTS } from '../data'
 import BlogCard from '../components/BlogCard'
 import PostOverlay from '../components/PostOverlay'
+import { blogs as blogsApi } from '../api'
 
-// Build user-published posts from localStorage
-function getUserPosts() {
-  try {
-    return JSON.parse(localStorage.getItem('bard-posts') || '[]')
-      .filter(p => p.status === 'published')
-      .map(p => ({
-        id: 'user-' + p.id,
-        title: p.title || 'Untitled',
-        author: 'You',
-        avatar: 'https://i.pravatar.cc/64?img=68',
-        avatarSm: 'https://i.pravatar.cc/32?img=68',
-        date: p.date || '',
-        read: p.read || '1 min read',
-        views: (p.words || 0) + ' words',
-        img: p.cover || 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=900&auto=format&fit=crop',
-        color: p.topicColor || '#5C7A6E',
-        tags: (p.topicLabel || p.topic || '').toLowerCase(),
-        tagLabel: p.topicLabel || p.topic || '',
-        excerpt: p.excerpt || '',
-        overlay: [],
-        body: (p.body || '').split('\n\n').filter(Boolean).map(s => `<p>${s.trim().replace(/\n/g, '<br>')}</p>`).join(''),
-        stats: { views: (p.words || 0) + ' words', comments: 0 },
-        likes: 0,
-        comments: [],
-        isUserPost: true,
-      }))
-  } catch { return [] }
+// Map a server blog object to the shape expected by BlogCard / PostOverlay
+function mapBlog(b) {
+  return {
+    id: b.id,
+    slug: b.slug,
+    title: b.title || 'Untitled',
+    author: b.author?.displayName || b.author?.username || 'Anonymous',
+    avatar: b.author?.avatarUrl || `https://i.pravatar.cc/64?u=${b.author?.id || 0}`,
+    avatarSm: b.author?.avatarUrl || `https://i.pravatar.cc/32?u=${b.author?.id || 0}`,
+    date: b.publishedAt ? new Date(b.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+    read: `${b.readingTimeMinutes || 1} min read`,
+    views: `${b.likeCount || 0} likes`,
+    img: b.coverImageUrl || 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=900&auto=format&fit=crop',
+    color: '#5C7A6E',
+    tags: (b.tags || []).join(' '),
+    tagLabel: (b.tags || [])[0] || '',
+    excerpt: b.excerpt || '',
+    overlay: [],
+    body: b.html || '',
+    stats: { views: `${b.likeCount || 0} likes`, comments: b.commentCount || 0 },
+    likes: b.likeCount || 0,
+    liked: b.liked || false,
+    bookmarked: b.bookmarked || false,
+    comments: [],
+    isApiPost: true,
+  }
 }
 
 export default function Blogs() {
   const [searchParams, setSearchParams] = useSearchParams()
   const topicParam = searchParams.get('topic') || ''
 
-  const allPosts = [...POSTS, ...getUserPosts()]
-
+  const [apiPosts, setApiPosts] = useState([])
+  const [apiLoading, setApiLoading] = useState(true)
   const [activeTopic, setActiveTopic] = useState(topicParam)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [openPost, setOpenPost] = useState(null)
   const searchRef = useRef(null)
 
+  // Fetch blogs from API
+  useEffect(() => {
+    let cancelled = false
+    setApiLoading(true)
+    blogsApi.list({ limit: 50 })
+      .then(res => {
+        if (!cancelled) {
+          const items = res?.data?.items || []
+          setApiPosts(items.map(mapBlog))
+        }
+      })
+      .catch(() => {
+        // Fall back to static data silently
+        if (!cancelled) setApiPosts([])
+      })
+      .finally(() => { if (!cancelled) setApiLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  // Merge API + static posts (API takes precedence; static are fallback)
+  const allPosts = apiPosts.length > 0 ? apiPosts : POSTS
+
   // Scroll progress bar
-  const barRef = useRef(null)
   useEffect(() => {
     const bar = document.createElement('div')
     bar.id = 'progress-bar'
@@ -60,20 +81,17 @@ export default function Blogs() {
     return () => { window.removeEventListener('scroll', onScroll); bar.remove() }
   }, [])
 
-  // Lock scroll when overlay is open
   useEffect(() => {
     document.body.style.overflow = openPost ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [openPost])
 
-  // Escape key
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') setOpenPost(null) }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  // Sync topic param
   useEffect(() => { setActiveTopic(topicParam) }, [topicParam])
 
   const toggleSearch = useCallback(() => {
@@ -87,7 +105,7 @@ export default function Blogs() {
   const filteredPosts = allPosts.filter(p => {
     const topicMatch = !activeTopic || p.tags.includes(activeTopic) || p.id === activeTopic
     const q = query.toLowerCase().trim()
-    const searchMatch = !q || p.title.toLowerCase().includes(q) || p.tags.includes(q) || p.tagLabel.toLowerCase().includes(q)
+    const searchMatch = !q || p.title.toLowerCase().includes(q) || p.tags.includes(q) || (p.tagLabel || '').toLowerCase().includes(q)
     return topicMatch && searchMatch
   })
 
@@ -124,7 +142,6 @@ export default function Blogs() {
 
         {/* Posts container */}
         <div style={{ background: '#EAE2D8', padding: '2rem', borderRadius: 2 }}>
-          {/* Topic filter banner */}
           {activeTopic && (
             <div className="topic-banner active">
               <div>
@@ -135,7 +152,11 @@ export default function Blogs() {
             </div>
           )}
 
-          {filteredPosts.length === 0 && (
+          {apiLoading && (
+            <p style={{ textAlign: 'center', padding: '2rem 0', fontSize: '0.9rem', color: '#6B7280' }}>Loading posts…</p>
+          )}
+
+          {!apiLoading && filteredPosts.length === 0 && (
             <p style={{ textAlign: 'center', padding: '3rem 0', fontSize: '0.9rem', color: '#6B7280' }}>No posts match your search.</p>
           )}
 

@@ -1,34 +1,31 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useNavigate } from 'react-router-dom'
-import { BardAuth } from '../auth'
+﻿import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const { login } = useAuth()
   const navigate = useNavigate()
 
-  // Redirect if already logged in
-  if (BardAuth.isLoggedIn()) {
-    navigate('/profile')
-    return null
-  }
-
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    const result = BardAuth.login(email, password)
-    if (result.ok) {
+    setLoading(true)
+    try {
+      await login(identifier.trim(), password)
       navigate('/profile')
-    } else {
-      setError(result.error)
+    } catch (err) {
+      setError(err.message || 'Invalid email or password.')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <div style={{ background: '#F2EBE1', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      {/* Close button */}
       <Link to="/blogs" aria-label="Close" style={{ position: 'absolute', top: '2rem', right: '2rem', color: '#000', transition: 'opacity 0.2s', opacity: 1 }}
         onMouseOver={e => e.currentTarget.style.opacity = '0.6'} onMouseOut={e => e.currentTarget.style.opacity = '1'}
       >
@@ -46,12 +43,12 @@ export default function Login() {
           <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <input
               className="input-field"
-              id="email"
-              type="email"
-              placeholder="Email"
+              id="identifier"
+              type="text"
+              placeholder="Email or username"
               required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              value={identifier}
+              onChange={e => setIdentifier(e.target.value)}
             />
             <input
               className="input-field"
@@ -63,24 +60,17 @@ export default function Login() {
               onChange={e => setPassword(e.target.value)}
             />
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-0.5rem' }}>
-              <a href="#" style={{ fontSize: '0.75rem', color: '#6B7280', textDecoration: 'none', transition: 'color 0.2s' }}
-                onMouseOver={e => { e.currentTarget.style.color = '#000'; e.currentTarget.style.textDecoration = 'underline' }}
-                onMouseOut={e => { e.currentTarget.style.color = '#6B7280'; e.currentTarget.style.textDecoration = 'none' }}
-              >Forgot password?</a>
-            </div>
-
             {error && <p style={{ fontSize: '0.875rem', textAlign: 'center', color: '#F87171' }}>{error}</p>}
 
-            <button type="submit" style={{ width: '100%', background: '#000', color: '#fff', fontWeight: 600, padding: '0.75rem', fontSize: '1rem', border: 'none', cursor: 'pointer', marginTop: '0.5rem', transition: 'background 0.2s' }}
-              onMouseOver={e => e.currentTarget.style.background = '#333'} onMouseOut={e => e.currentTarget.style.background = '#000'}
+            <button type="submit" disabled={loading} style={{ width: '100%', background: '#000', color: '#fff', fontWeight: 600, padding: '0.75rem', fontSize: '1rem', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '0.5rem', transition: 'background 0.2s', opacity: loading ? 0.7 : 1 }}
+              onMouseOver={e => { if (!loading) e.currentTarget.style.background = '#333' }} onMouseOut={e => e.currentTarget.style.background = '#000'}
             >
-              Log in
+              {loading ? 'Logging in…' : 'Log in'}
             </button>
           </form>
 
           <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.875rem' }}>
-            <span style={{ color: '#6B7280' }}>Don't have an account? </span>
+            <span style={{ color: '#6B7280' }}>Don&apos;t have an account? </span>
             <Link to="/signup" style={{ fontWeight: 700, color: '#000' }}>Sign Up</Link>
           </div>
 

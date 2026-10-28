@@ -1,10 +1,10 @@
-import { useState, useRef, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+﻿import { useState, useRef, useCallback, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { TOPIC_CHIPS } from '../data'
+import { useAuth } from '../context/AuthContext'
+import { blogs as blogsApi } from '../api'
 
 const DEFAULT_COVER = 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&auto=format&fit=crop'
-const DRAFT_KEY = 'bard-draft'
-const POSTS_KEY = 'bard-posts'
 
 function wordCount(text) { return (text.trim().match(/\S+/g) || []).length }
 function readMins(words) { return Math.max(1, Math.round(words / 200) || 1) }
@@ -12,17 +12,21 @@ function readMins(words) { return Math.max(1, Math.round(words / 200) || 1) }
 const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
 export default function PostWriter() {
-  // ── Form state ──────────────────────────────────────────────────────────
-  const [title,   setTitle]   = useState(() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null')?.title || '' } catch { return '' } })
-  const [excerpt, setExcerpt] = useState(() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null')?.excerpt || '' } catch { return '' } })
-  const [body,    setBody]    = useState(() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null')?.body || '' } catch { return '' } })
-  const [activeTopic, setActiveTopic] = useState(() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null')?.topic || 'gut' } catch { return 'gut' } })
-  const [coverSrc, setCoverSrc] = useState(() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null')?.cover || DEFAULT_COVER } catch { return DEFAULT_COVER } })
+  const { user } = useAuth()
+  const navigate = useNavigate()
+
+  const [title,   setTitle]   = useState('')
+  const [excerpt, setExcerpt] = useState('')
+  const [body,    setBody]    = useState('')
+  const [activeTopic, setActiveTopic] = useState('gut')
+  const [coverFile, setCoverFile] = useState(null)
+  const [coverSrc, setCoverSrc] = useState(DEFAULT_COVER)
   const [coverUrl, setCoverUrl] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const [toast, setToast] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
   const [published, setPublished] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const coverFileRef = useRef(null)
 
@@ -35,44 +39,40 @@ export default function PostWriter() {
     setTimeout(() => setToastVisible(false), 2200)
   }
 
-  function collectPost(status) {
-    return {
-      id: Date.now().toString(36),
-      title: title.trim(),
-      excerpt: excerpt.trim(),
-      body: body.trim(),
-      topic: currentChip.id,
-      topicLabel: currentChip.label,
-      topicColor: currentChip.color,
-      cover: coverSrc,
-      status,
-      date: today,
-      words,
-      read: mins + ' min read',
-    }
-  }
-
-  function handleDraft() {
-    const draft = collectPost('draft')
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
-    showToast('Draft saved')
-  }
-
-  function handlePublish(e) {
+  async function handlePublish(e) {
     e.preventDefault()
     if (!title.trim() || !body.trim()) { showToast('Add a title and a story first'); return }
-    const post = collectPost('published')
-    const existing = JSON.parse(localStorage.getItem(POSTS_KEY) || '[]')
-    existing.unshift(post)
-    localStorage.setItem(POSTS_KEY, JSON.stringify(existing))
-    localStorage.removeItem(DRAFT_KEY)
-    setPublished(true)
-    showToast('Published')
-    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100)
+    if (!user?.emailVerified) {
+      showToast('Please verify your email before publishing')
+      return
+    }
+    setLoading(true)
+    try {
+      const fd = new FormData()
+      fd.append('title', title.trim())
+      fd.append('excerpt', excerpt.trim())
+      // Convert plain text body to minimal delta format the server expects
+      const delta = { ops: body.split('\n').map(line => ({ insert: line + '\n' })) }
+      fd.append('content', JSON.stringify(delta))
+      fd.append('tags', JSON.stringify([currentChip.id]))
+      fd.append('status', 'published')
+      if (coverFile) {
+        fd.append('cover', coverFile)
+      }
+      await blogsApi.create(fd)
+      setPublished(true)
+      showToast('Published!')
+      setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100)
+    } catch (err) {
+      showToast(err.message || 'Failed to publish. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCoverFile = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) return
+    setCoverFile(file)
     const reader = new FileReader()
     reader.onload = (ev) => setCoverSrc(ev.target.result)
     reader.readAsDataURL(file)
@@ -81,6 +81,13 @@ export default function PostWriter() {
   return (
     <div style={{ background: '#F2EBE1', minHeight: '100vh' }}>
       <main style={{ maxWidth: 1280, margin: '0 auto', padding: '2rem 1.5rem' }}>
+        {/* Email verification warning */}
+        {user && !user.emailVerified && (
+          <div style={{ background: '#FEF3C7', border: '1px solid #F59E0B', padding: '1rem 1.5rem', marginBottom: '1.5rem', fontSize: '0.875rem', color: '#92400E' }}>
+            ⚠ Please verify your email to publish stories. Check your inbox for a verification link.
+          </div>
+        )}
+
         {/* Success banner */}
         {published && (
           <div style={{ background: '#000', color: '#fff', padding: '1.5rem 2rem', textAlign: 'center', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -88,7 +95,7 @@ export default function PostWriter() {
             <p style={{ fontSize: '0.875rem', opacity: 0.7 }}>Your story is now live on BARD.</p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '0.5rem' }}>
               <Link to="/blogs" style={{ border: '1px solid #fff', color: '#fff', padding: '0.5rem 1.5rem', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>View Blog</Link>
-              <button onClick={() => { setPublished(false); setTitle(''); setExcerpt(''); setBody(''); setCoverSrc(DEFAULT_COVER) }}
+              <button onClick={() => { setPublished(false); setTitle(''); setExcerpt(''); setBody(''); setCoverSrc(DEFAULT_COVER); setCoverFile(null) }}
                 style={{ border: '1px solid rgba(255,255,255,0.4)', color: 'rgba(255,255,255,0.8)', padding: '0.5rem 1.5rem', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'none', cursor: 'pointer' }}>
                 Write Another
               </button>
@@ -100,9 +107,8 @@ export default function PostWriter() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
           <style>{`@media (max-width: 768px) { .post-grid { grid-template-columns: 1fr !important; } }`}</style>
 
-          {/* ── Left: Form ── */}
+          {/* Left: Form */}
           <div className="post-grid" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            {/* Header */}
             <div>
               <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B7280', marginBottom: '0.5rem' }}>Create</p>
               <h1 className="font-display" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', transform: 'scaleX(1.08)', transformOrigin: 'left' }}>Write a Story</h1>
@@ -161,31 +167,23 @@ export default function PostWriter() {
                 <input ref={coverFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleCoverFile(e.target.files[0])} />
                 <input className="field-input" type="url" placeholder="…or paste an image URL" style={{ marginTop: '0.75rem' }}
                   value={coverUrl}
-                  onChange={e => { setCoverUrl(e.target.value); if (e.target.value.trim()) setCoverSrc(e.target.value.trim()) }}
+                  onChange={e => { setCoverUrl(e.target.value); if (e.target.value.trim()) { setCoverSrc(e.target.value.trim()); setCoverFile(null) } }}
                 />
               </div>
 
               {/* Actions */}
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <button type="submit" className="btn-primary" style={{ background: '#000', color: '#fff', fontWeight: 700, padding: '0.75rem 2rem', fontSize: '0.875rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                  Publish Story
-                </button>
-                <button type="button" onClick={handleDraft}
-                  style={{ border: '1px solid #000', background: 'none', padding: '0.75rem 2rem', fontSize: '0.875rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background 0.2s, color 0.2s' }}
-                  onMouseOver={e => { e.currentTarget.style.background = '#000'; e.currentTarget.style.color = '#fff' }}
-                  onMouseOut={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#000' }}
-                >
-                  Save Draft
+                <button type="submit" disabled={loading} className="btn-primary" style={{ background: '#000', color: '#fff', fontWeight: 700, padding: '0.75rem 2rem', fontSize: '0.875rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}>
+                  {loading ? 'Publishing…' : 'Publish Story'}
                 </button>
               </div>
             </form>
           </div>
 
-          {/* ── Right: Live Preview ── */}
+          {/* Right: Live Preview */}
           <div style={{ position: 'sticky', top: 80 }}>
             <p style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#757575', marginBottom: '1rem' }}>Live Preview</p>
             <article style={{ background: '#FDFCFB', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-              {/* Cover */}
               <div style={{ height: 220, background: currentChip.color, position: 'relative', overflow: 'hidden' }}>
                 <img src={coverSrc} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply', opacity: 0.8 }} />
                 <span style={{ position: 'absolute', top: 12, right: 12, background: '#000', color: '#fff', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '4px 10px' }}>{mins} min read</span>

@@ -1,35 +1,42 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { BardAuth } from '../auth'
+import { useAuth } from '../context/AuthContext'
 
 export default function Signup() {
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName]   = useState('')
-  const [email, setEmail]         = useState('')
-  const [password, setPassword]   = useState('')
-  const [error, setError]         = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [username, setUsername] = useState('')
+  const [email, setEmail]     = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError]     = useState('')
+  const [loading, setLoading] = useState(false)
+  const { register } = useAuth()
   const navigate = useNavigate()
 
-  if (BardAuth.isLoggedIn()) {
-    navigate('/profile')
+  function validatePassword(pw) {
+    if (pw.length < 8) return 'Password must be at least 8 characters.'
+    if (!/[A-Za-z]/.test(pw)) return 'Password must include at least one letter.'
+    if (!/\d/.test(pw)) return 'Password must include at least one number.'
     return null
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
-    const result = BardAuth.signup(firstName, lastName, email, password)
-    if (result.ok) {
+    const pwErr = validatePassword(password)
+    if (pwErr) { setError(pwErr); return }
+    setLoading(true)
+    try {
+      await register(displayName.trim(), username.trim().toLowerCase(), email.toLowerCase().trim(), password)
       navigate('/profile')
-    } else {
-      setError(result.error)
+    } catch (err) {
+      setError(err.message || 'Registration failed. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <div style={{ background: '#F2EBE1', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      {/* Close button */}
       <Link to="/" aria-label="Close" style={{ position: 'absolute', top: '2rem', right: '2rem', color: '#000', opacity: 1, transition: 'opacity 0.2s' }}
         onMouseOver={e => e.currentTarget.style.opacity = '0.6'} onMouseOut={e => e.currentTarget.style.opacity = '1'}
       >
@@ -45,17 +52,29 @@ export default function Signup() {
           </h1>
 
           <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <input className="input-field" type="text"     placeholder="First Name" required value={firstName} onChange={e => setFirstName(e.target.value)} />
-            <input className="input-field" type="text"     placeholder="Last Name"  required value={lastName}  onChange={e => setLastName(e.target.value)} />
-            <input className="input-field" type="email"    placeholder="Email"      required value={email}     onChange={e => setEmail(e.target.value)} />
-            <input className="input-field" type="password" placeholder="Password"   required value={password}  onChange={e => setPassword(e.target.value)} />
+            <input className="input-field" type="text"     placeholder="Display Name" required value={displayName} onChange={e => setDisplayName(e.target.value)} />
+            <input className="input-field" type="text"
+              placeholder="Username (letters, numbers, _)"
+              required
+              pattern="[a-zA-Z0-9_]{3,20}"
+              title="3–20 letters, numbers or underscores"
+              value={username} onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))} />
+            <input className="input-field" type="email"    placeholder="Email" required value={email} onChange={e => setEmail(e.target.value)} />
+            <div>
+              <input className="input-field" type="password"
+                placeholder="Password"
+                required
+                value={password}
+                onChange={e => setPassword(e.target.value)} />
+              <p style={{ fontSize: '0.7rem', color: '#9CA3AF', marginTop: '0.25rem' }}>Min 8 chars, must include a letter and a number</p>
+            </div>
 
             {error && <p style={{ fontSize: '0.875rem', textAlign: 'center', color: '#F87171' }}>{error}</p>}
 
-            <button type="submit" style={{ width: '100%', background: '#000', color: '#fff', fontWeight: 600, padding: '0.75rem', fontSize: '1rem', border: 'none', cursor: 'pointer', marginTop: '1rem', transition: 'background 0.2s' }}
-              onMouseOver={e => e.currentTarget.style.background = '#333'} onMouseOut={e => e.currentTarget.style.background = '#000'}
+            <button type="submit" disabled={loading} style={{ width: '100%', background: '#000', color: '#fff', fontWeight: 600, padding: '0.75rem', fontSize: '1rem', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', marginTop: '1rem', transition: 'background 0.2s', opacity: loading ? 0.7 : 1 }}
+              onMouseOver={e => { if (!loading) e.currentTarget.style.background = '#333' }} onMouseOut={e => e.currentTarget.style.background = '#000'}
             >
-              Sign up
+              {loading ? 'Creating account…' : 'Sign up'}
             </button>
           </form>
 
