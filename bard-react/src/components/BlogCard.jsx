@@ -1,28 +1,16 @@
-import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { blogs as blogsApi, social as socialApi } from '../api'
-import { useAuth } from '../context/AuthContext'
-
-export function articlePath(blog) {
-  return blog.status === 'draft' || blog.status === 'hidden'
-    ? `/article/id/${blog.id}`
-    : `/article/${encodeURIComponent(blog.slug)}`
-}
+import { articlePath } from './articlePath'
+import { useBlogCardActions } from './useBlogCardActions'
 
 function initials(author) {
   const name = author?.displayName || author?.username || 'B'
   return name.trim().slice(0, 1).toUpperCase()
 }
 
-export default function BlogCard({ post, onChange, layout = 'card' }) {
-  const { user } = useAuth()
+function BlogCardContent({ post, onChange, layout = 'card' }) {
   const location = useLocation()
   const navigate = useNavigate()
-  const [liked, setLiked] = useState(Boolean(post.liked))
-  const [bookmarked, setBookmarked] = useState(Boolean(post.bookmarked))
-  const [likeCount, setLikeCount] = useState(post.likeCount || 0)
-  const [busy, setBusy] = useState('')
-  const [message, setMessage] = useState('')
+  const { user, liked, bookmarked, likeCount, busy, message, toggleLike, toggleBookmark } = useBlogCardActions({ post, onChange, location, navigate })
   const href = articlePath(post)
   const state = { from: `${location.pathname}${location.search}` }
   const authorName = post.author?.displayName || post.author?.username || 'BARD writer'
@@ -31,12 +19,6 @@ export default function BlogCard({ post, onChange, layout = 'card' }) {
     ? new Date(dateValue).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : 'Draft'
   const readTime = `${post.readingTimeMinutes || 1} min read`
-
-  useEffect(() => {
-    setLiked(Boolean(post.liked))
-    setBookmarked(Boolean(post.bookmarked))
-    setLikeCount(post.likeCount || 0)
-  }, [post.id, post.liked, post.bookmarked, post.likeCount])
 
   function openFromCard(event) {
     if (event.target.closest('a, button')) return
@@ -67,33 +49,6 @@ export default function BlogCard({ post, onChange, layout = 'card' }) {
     if (!card) return
     card.style.transform = ''
     card.style.transition = ''
-  }
-
-  async function toggleLike(event) {
-    event.stopPropagation()
-    if (!user) return navigate('/login', { state: { from: location.pathname } })
-    setBusy('like'); setMessage('')
-    try {
-      const response = liked ? await blogsApi.unlike(post.id) : await blogsApi.like(post.id)
-      setLiked(response.data.liked)
-      setLikeCount(response.data.likeCount)
-      onChange?.({ ...post, liked: response.data.liked, likeCount: response.data.likeCount })
-    } catch (error) { setMessage(error.message || 'Could not update like.') }
-    finally { setBusy('') }
-  }
-
-  async function toggleBookmark(event) {
-    event.stopPropagation()
-    if (!user) return navigate('/login', { state: { from: location.pathname } })
-    setBusy('bookmark'); setMessage('')
-    try {
-      const next = !bookmarked
-      if (next) await socialApi.addBookmark(post.id)
-      else await socialApi.removeBookmark(post.id)
-      setBookmarked(next)
-      onChange?.({ ...post, bookmarked: next })
-    } catch (error) { setMessage(error.message || 'Could not update bookmark.') }
-    finally { setBusy('') }
   }
 
   const storyImage = post.coverImageUrl ? (
@@ -217,4 +172,10 @@ export default function BlogCard({ post, onChange, layout = 'card' }) {
       </article>
     </div>
   )
+}
+
+export default function BlogCard(props) {
+  const { post } = props
+  const stateKey = `${post.id}:${Boolean(post.liked)}:${Boolean(post.bookmarked)}:${post.likeCount || 0}`
+  return <BlogCardContent key={stateKey} {...props} />
 }

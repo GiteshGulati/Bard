@@ -81,3 +81,18 @@ export async function cleanupAssetIfUnreferenced(assetId, ownerId) {
     // Keep its metadata if Cloudinary has not confirmed deletion.
   }
 }
+
+export async function cleanupAssetIfUnreferencedStrict(assetId, ownerId) {
+  if (!assetId || !ownerId) return 'missing';
+  const id = assetId._id || assetId;
+  const [avatar, blog] = await Promise.all([
+    User.exists({ avatarAsset: id }),
+    Blog.exists({ $or: [{ coverAsset: id }, { inlineAssets: id }] }),
+  ]);
+  if (avatar || blog) return 'referenced';
+  const asset = await CloudAsset.findOne({ _id: id, owner: ownerId });
+  if (!asset) return 'missing';
+  await deleteCloudinaryImage(asset.publicId);
+  await CloudAsset.deleteOne({ _id: asset._id, owner: ownerId });
+  return 'deleted';
+}

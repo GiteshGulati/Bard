@@ -3,11 +3,12 @@ import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { connectDb, disconnectDb } from '../src/config/db.js';
 import { createApp } from '../src/app.js';
-import { User, Blog, Comment, Like, Bookmark, Follow, Notification, Report, CloudAsset } from '../src/models/index.js';
+import { User, Blog, Comment, Like, Bookmark, Follow, Notification, Report, CloudAsset, BlogDeletion } from '../src/models/index.js';
 
 let mongod;
 let app;
 let httpServer;
+let registrationIp = 1;
 
 export async function startApp() {
   mongod = await MongoMemoryServer.create();
@@ -32,6 +33,7 @@ export async function stopApp() {
     Notification.deleteMany({}),
     Report.deleteMany({}),
     CloudAsset.deleteMany({}),
+    BlogDeletion.deleteMany({}),
   ]);
   if (httpServer?.listening) await new Promise((resolve, reject) => httpServer.close((err) => err ? reject(err) : resolve()));
   await disconnectDb();
@@ -56,7 +58,11 @@ export async function register(ag, overrides = {}) {
     displayName: 'Reader',
     ...overrides,
   };
-  const res = await ag.post('/api/v1/auth/register').set('x-csrf-token', token).send(body);
+  registrationIp = (registrationIp % 200) + 1;
+  const res = await ag.post('/api/v1/auth/register')
+    .set('x-forwarded-for', `192.0.2.${registrationIp}`)
+    .set('x-csrf-token', token)
+    .send(body);
   return { res, token: await csrf(ag), user: res.body.data?.user };
 }
 

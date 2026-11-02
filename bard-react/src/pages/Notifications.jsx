@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { social as socialApi } from '../api'
 
@@ -14,17 +14,32 @@ export default function Notifications() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
-  const load = useCallback(async (nextCursor = null, append = false) => {
-    append ? setBusy(true) : setLoading(true)
-    setError('')
+  useEffect(() => {
+    let active = true
+    socialApi.notifications({ limit: 30 })
+      .then(result => {
+        if (!active) return
+        setItems(result.data.items || [])
+        setCursor(result.data.nextCursor || null)
+        setUnread(result.data.unreadCount || 0)
+        setError('')
+      })
+      .catch(err => { if (active) setError(err.message || 'Could not load notifications.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [retry])
+
+  async function loadMore() {
+    if (!cursor || busy) return
+    setBusy(true)
     try {
-      const result = await socialApi.notifications({ limit: 30, ...(nextCursor ? { cursor: nextCursor } : {}) })
-      setItems(current => append ? [...current, ...(result.data.items || [])] : result.data.items || [])
-      setCursor(result.data.nextCursor || null); setUnread(result.data.unreadCount || 0)
-    } catch (err) { setError(err.message || 'Could not load notifications.') }
-    finally { setLoading(false); setBusy(false) }
-  }, [])
-  useEffect(() => { load() }, [load, retry])
+      const result = await socialApi.notifications({ limit: 30, cursor })
+      setItems(current => [...current, ...(result.data.items || [])])
+      setCursor(result.data.nextCursor || null)
+      setUnread(result.data.unreadCount || 0)
+    } catch (err) { setError(err.message || 'Could not load more notifications.') }
+    finally { setBusy(false) }
+  }
 
   async function markRead(item) {
     if (item.readAt) return
@@ -46,7 +61,7 @@ export default function Notifications() {
 
   return <main style={{ background: '#F2EBE1', minHeight: '100vh', padding: '2.5rem 1.5rem' }}><div style={{ maxWidth: 850, margin: '0 auto' }}>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}><div><p style={{ textTransform: 'uppercase', letterSpacing: '.15em', color: '#6B7280', fontSize: '.75rem' }}>Your inbox</p><h1 className="font-display" style={{ fontSize: '3rem' }}>Notifications</h1></div><button type="button" onClick={markAllRead} disabled={busy || !unread}>Mark all read</button></div>
-    {loading && <p role="status">Loading notifications…</p>}{error && <p role="alert">{error} <button type="button" onClick={() => setRetry(n => n + 1)}>Retry</button></p>}
+    {loading && <p role="status">Loading notifications…</p>}{error && <p role="alert">{error} <button type="button" onClick={() => { setLoading(true); setRetry(n => n + 1) }}>Retry</button></p>}
     {!loading && !error && !items.length && <p>You’re all caught up. New follows, comments and likes will show up here.</p>}
     <div style={{ display: 'grid', gap: '.75rem', marginTop: '1.5rem' }}>{items.map(item => {
       const destination = item.blog?.slug ? `/article/${encodeURIComponent(item.blog.slug)}` : item.actor?.username ? `/u/${encodeURIComponent(item.actor.username)}` : null
@@ -57,6 +72,6 @@ export default function Notifications() {
         {!item.readAt && <button type="button" onClick={() => markRead(item)} style={{ marginLeft: '1rem' }}>Mark read</button>}
       </article>
     })}</div>
-    {cursor && <div style={{ textAlign: 'center', marginTop: '1.5rem' }}><button type="button" disabled={busy} onClick={() => load(cursor, true)}>{busy ? 'Loading…' : 'Load more'}</button></div>}
+    {cursor && <div style={{ textAlign: 'center', marginTop: '1.5rem' }}><button type="button" disabled={busy} onClick={loadMore}>{busy ? 'Loading…' : 'Load more'}</button></div>}
   </div></main>
 }

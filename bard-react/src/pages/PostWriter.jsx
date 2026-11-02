@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { TOPIC_CHIPS } from '../data'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/authState'
 import { blogs as blogsApi } from '../api'
 
 const DEFAULT_COVER = 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&auto=format&fit=crop'

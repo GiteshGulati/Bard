@@ -7,3 +7,4 @@ export { Follow } from './Follow.js';
 export { Notification } from './Notification.js';
 export { Report } from './Report.js';
 export { CloudAsset } from './CloudAsset.js';
+export { BlogDeletion } from './BlogDeletion.js';

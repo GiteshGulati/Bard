@@ -5,17 +5,17 @@ import BlogCard from './BlogCard'
 
 export default function UserPostsSection() {
   const [posts, setPosts] = useState([])
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+  const [loadedRetry, setLoadedRetry] = useState(null)
+  const loading = loadedRetry !== retry
 
   useEffect(() => {
     let active = true
-    setLoading(true); setError('')
     blogsApi.list({ limit: 6 }).then(result => {
-      if (active) setPosts(result?.data?.items || [])
+      if (active) { setPosts(result?.data?.items || []); setError('') }
     }).catch(err => { if (active) setError(err.message || 'Could not load recent stories.') })
-      .finally(() => { if (active) setLoading(false) })
+      .finally(() => { if (active) setLoadedRetry(retry) })
     return () => { active = false }
   }, [retry])
 

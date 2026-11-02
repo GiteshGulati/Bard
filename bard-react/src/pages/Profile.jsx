@@ -1,6 +1,6 @@
-﻿import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/authState'
 import { auth as authApi, users as usersApi } from '../api'
 import BlogCard from '../components/BlogCard'
 
@@ -10,11 +10,13 @@ export default function Profile() {
   const { user, refreshUser } = useAuth()
 
   const [myBlogs, setMyBlogs] = useState([])
-  const [blogsLoading, setBlogsLoading] = useState(true)
+  const [blogsLoadedKey, setBlogsLoadedKey] = useState(null)
   const [moreBlogsLoading, setMoreBlogsLoading] = useState(false)
   const [blogsError, setBlogsError] = useState('')
   const [blogsCursor, setBlogsCursor] = useState(null)
   const [loadVersion, setLoadVersion] = useState(0)
+  const blogsRequestKey = `${user?.username || ''}:${loadVersion}`
+  const blogsLoading = Boolean(user?.username) && blogsLoadedKey !== blogsRequestKey
   const [followers, setFollowers] = useState(0)
   const [following, setFollowing] = useState(0)
 
@@ -38,15 +40,15 @@ export default function Profile() {
   useEffect(() => {
     if (!user?.username) return
     let active = true
-    setBlogsLoading(true); setBlogsError(''); setBlogsCursor(null); setMyBlogs([])
     usersApi.myBlogs(user.username, { limit: 12 })
       .then(res => {
         if (!active) return
+        setBlogsError('')
         setMyBlogs(res?.data?.items || [])
         setBlogsCursor(res?.data?.nextCursor || null)
       })
       .catch(err => { if (active) setBlogsError(err.message || 'Could not load your stories.') })
-      .finally(() => { if (active) setBlogsLoading(false) })
+      .finally(() => { if (active) setBlogsLoadedKey(blogsRequestKey) })
 
     usersApi.get(user.username).then(res => {
       if (!active) return
@@ -54,7 +56,7 @@ export default function Profile() {
       setFollowers(profile.followerCount || 0); setFollowing(profile.followingCount || 0)
     }).catch(() => { if (active) { setFollowers(0); setFollowing(0) } })
     return () => { active = false }
-  }, [user?.username, loadVersion])
+  }, [user?.username, loadVersion, blogsRequestKey])
 
   async function loadMoreBlogs() {
     if (!blogsCursor || moreBlogsLoading) return

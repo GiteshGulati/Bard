@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { blogs as blogsApi, comments as commentsApi, social as socialApi } from '../api'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/authState'
 
 export default function ArticleDetail({ byId = false }) {
   const params = useParams()
@@ -10,8 +10,10 @@ export default function ArticleDetail({ byId = false }) {
   const { user } = useAuth()
   const [blog, setBlog] = useState(null)
   const [comments, setComments] = useState([])
+  const [commentsCursor, setCommentsCursor] = useState(null)
+  const [commentsLoadingMore, setCommentsLoadingMore] = useState(false)
   const [related, setRelated] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loadedRequest, setLoadedRequest] = useState(null)
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
   const [busy, setBusy] = useState('')
@@ -19,29 +21,50 @@ export default function ArticleDetail({ byId = false }) {
   const [parentId, setParentId] = useState(null)
   const [shareMessage, setShareMessage] = useState('')
   const [retry, setRetry] = useState(0)
+  const requestKey = `${byId ? params.id : params.slug}:${retry}`
+  const loading = loadedRequest !== requestKey
   const returnTo = typeof location.state?.from === 'string' && location.state.from.startsWith('/') ? location.state.from : '/blogs'
 
   useEffect(() => {
     let active = true
-    setLoading(true); setError(''); setBlog(null); setComments([]); setRelated([])
     const load = byId ? blogsApi.getById(params.id) : blogsApi.get(params.slug)
     load.then(async result => {
       if (!active) return
+      setError('')
       const article = result?.data?.blog
       setBlog(article)
       const [commentsResult, relatedResult] = await Promise.all([
-        commentsApi.list(article.id),
+        commentsApi.list(article.id, { limit: 20 }),
         article.status === 'published' ? blogsApi.related(article.id).catch(() => ({ data: { items: [] } })) : Promise.resolve({ data: { items: [] } }),
       ])
-      if (active) { setComments(commentsResult?.data?.items || []); setRelated(relatedResult?.data?.items || []) }
+      if (active) {
+        setComments(commentsResult?.data?.items || [])
+        setCommentsCursor(commentsResult?.data?.nextCursor || null)
+        setRelated(relatedResult?.data?.items || [])
+      }
     }).catch(err => {
       if (active) setError(err.status === 404 ? 'This story could not be found or is not available.' : err.message || 'Could not load this story. Please try again.')
-    }).finally(() => { if (active) setLoading(false) })
+    }).finally(() => { if (active) setLoadedRequest(requestKey) })
     return () => { active = false }
-  }, [byId, params.id, params.slug, retry])
+  }, [byId, params.id, params.slug, retry, requestKey])
 
   const canComment = Boolean(user?.emailVerified && blog?.commentsEnabled && blog?.status === 'published')
   const visibleComments = useMemo(() => comments.filter(comment => comment.status !== 'hidden'), [comments])
+
+  async function loadMoreComments() {
+    if (!commentsCursor || commentsLoadingMore) return
+    setCommentsLoadingMore(true)
+    setActionError('')
+    try {
+      const result = await commentsApi.list(blog.id, { limit: 20, cursor: commentsCursor })
+      setComments(current => [...current, ...(result?.data?.items || [])])
+      setCommentsCursor(result?.data?.nextCursor || null)
+    } catch (err) {
+      setActionError(err.message || 'Could not load more comments.')
+    } finally {
+      setCommentsLoadingMore(false)
+    }
+  }
 
   async function toggleLike() {
     if (!user) return navigate('/login', { state: { from: `${location.pathname}${location.search}` } })
@@ -71,7 +94,7 @@ export default function ArticleDetail({ byId = false }) {
     setBusy('comment'); setActionError('')
     try {
       const result = await commentsApi.create(blog.id, { body: body.trim(), ...(parentId ? { parentId } : {}) })
-      setComments(current => [...current, result.data.comment])
+      setComments(current => [...current, result.data.comment].sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt)))
       setBlog(current => ({ ...current, commentCount: (current.commentCount || 0) + 1 }))
       setBody(''); setParentId(null)
     } catch (err) { setActionError(err.message || 'Could not publish your comment.') }
@@ -163,6 +186,7 @@ export default function ArticleDetail({ byId = false }) {
             </article>
           })}
           {!visibleComments.length && <p>No comments yet.</p>}
+          {commentsCursor && <button type="button" className="ov-comment-submit" onClick={loadMoreComments} disabled={commentsLoadingMore}>{commentsLoadingMore ? 'Loading…' : 'Load more comments'}</button>}
         </div>
       </section>
       {!!related.length && <section className="ov-recent"><div className="ov-recent-header"><h2 className="ov-section-title">Related Stories</h2><Link to="/blogs" className="ov-see-all">See all →</Link></div><div className="ov-recent-grid">{related.map(item => <Link key={item.id} to={item.status === 'draft' ? `/article/id/${item.id}` : `/article/${encodeURIComponent(item.slug)}`} className="ov-recent-card" style={{ color: 'inherit', textDecoration: 'none' }}>{item.coverImageUrl ? <img className="ov-recent-img" src={item.coverImageUrl} alt="" /> : <div className="ov-recent-img" style={{ background: '#5C7A6E', display: 'grid', placeItems: 'center', color: '#fff' }}>BARD</div>}<p className="ov-recent-title">{item.title}</p><p className="ov-recent-meta">{item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : ''} · {item.readingTimeMinutes || 1} min read</p></Link>)}</div></section>}

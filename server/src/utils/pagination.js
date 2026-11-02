@@ -24,18 +24,19 @@ export function parseCursor(value) {
   }
 }
 
-export function applyCursor(query, cursor, field = '_id') {
+export function applyCursor(query, cursor, field = '_id', direction = -1) {
   if (!cursor) return query;
   if (cursor.field !== field) throw badRequest('Cursor does not match this result ordering');
+  const after = direction > 0 ? '$gt' : '$lt';
   if (field === '_id') {
-    query._id = { $lt: cursor.id };
+    query._id = { [after]: cursor.id };
     return query;
   }
   query.$and = [
     ...(query.$and || []),
     { $or: [
-      { [field]: { $lt: cursor.value } },
-      { [field]: cursor.value, _id: { $lt: cursor.id } },
+      { [field]: { [after]: cursor.value } },
+      { [field]: cursor.value, _id: { [after]: cursor.id } },
     ] },
   ];
   return query;

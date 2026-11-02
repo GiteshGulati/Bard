@@ -66,7 +66,7 @@ export default function Home() {
       {/* MARQUEE */}
       <div style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', padding: '0.75rem 0', overflow: 'hidden', background: '#000', color: '#fff' }}>
         <div className="marquee-inner" style={{ display: 'flex', whiteSpace: 'nowrap', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-          {['Mindful Living','Rest & Recovery','Slow Mornings','Mental Clarity','Intentional Days','Journal & Reflect','Mindful Living','Rest & Recovery','Slow Mornings','Mental Clarity','Intentional Days','Journal & Reflect'].map((item, i, arr) => (
+          {['Mindful Living','Rest & Recovery','Slow Mornings','Mental Clarity','Intentional Days','Journal & Reflect','Mindful Living','Rest & Recovery','Slow Mornings','Mental Clarity','Intentional Days','Journal & Reflect'].map((item, i) => (
             <span key={i} style={{ paddingLeft: i % 2 === 0 ? '3rem' : '1rem', paddingRight: i % 2 === 0 ? '3rem' : '1rem' }}>{item}</span>
           ))}
         </div>

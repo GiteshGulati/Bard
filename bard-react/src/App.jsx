@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
-import { useAuth } from './context/AuthContext'
+import { useAuth } from './context/authState'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Blogs from './pages/Blogs'

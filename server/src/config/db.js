@@ -1,48 +1,12 @@
 import mongoose from 'mongoose';
 import { env } from './env.js';
 
-function nestedCodes(error) {
-  const pending = [error];
-  const visited = new Set();
-  const codes = new Set();
-  while (pending.length) {
-    const current = pending.pop();
-    if (!current || typeof current !== 'object' || visited.has(current)) continue;
-    visited.add(current);
-    if (current.code !== undefined) codes.add(String(current.code));
-    for (const key of ['cause', 'reason', 'error', 'servers']) {
-      const nested = current[key];
-      if (nested instanceof Map) pending.push(...[...nested.values()].map((entry) => entry?.error || entry));
-      else if (nested && typeof nested === 'object') pending.push(nested);
-    }
-  }
-  return codes;
-}
-
-function nestedSyscalls(error) {
-  const pending = [error];
-  const visited = new Set();
-  const syscalls = new Set();
-  while (pending.length) {
-    const current = pending.pop();
-    if (!current || typeof current !== 'object' || visited.has(current)) continue;
-    visited.add(current);
-    if (current.syscall) syscalls.add(String(current.syscall));
-    for (const key of ['cause', 'reason', 'error', 'servers']) {
-      const nested = current[key];
-      if (nested instanceof Map) pending.push(...[...nested.values()].map((entry) => entry?.error || entry));
-      else if (nested && typeof nested === 'object') pending.push(nested);
-    }
-  }
-  return syscalls;
-}
-
 function nestedErrors(error) {
   const pending = [{ error, depth: 0 }];
   const visited = new Set();
   const found = [];
-  while (pending.length) {
-    const { error: current, depth } = pending.shift();
+  for (let index = 0; index < pending.length; index += 1) {
+    const { error: current, depth } = pending[index];
     if (!current || typeof current !== 'object' || visited.has(current)) continue;
     visited.add(current);
     found.push({ error: current, depth });
@@ -81,8 +45,8 @@ export async function connectDb(uri = env.MONGODB_URI) {
     await Promise.all(Object.values(mongoose.models).map((model) => model.init()));
   } catch (error) {
     const failures = nestedErrors(error);
-    const codes = nestedCodes(error);
-    const syscalls = nestedSyscalls(error);
+    const codes = new Set(failures.filter(({ error: item }) => item.code !== undefined).map(({ error: item }) => String(item.code)));
+    const syscalls = new Set(failures.filter(({ error: item }) => item.syscall).map(({ error: item }) => String(item.syscall)));
     const code = [...codes][0] || '';
     const kind = codes.has('18') || codes.has('8000') || /authentication failed|bad auth/i.test(error?.message || '')
       ? 'authentication failed'
@@ -116,7 +80,7 @@ export function activeDatabaseName() {
 }
 
 mongoose.connection.on('error', (error) => {
-  const codes = nestedCodes(error);
+  const codes = new Set(nestedErrors(error).filter(({ error: item }) => item.code !== undefined).map(({ error: item }) => String(item.code)));
   const code = [...codes][0] || 'MONGO_CONNECTION';
   console.error(`MongoDB connection error (${code})`);
 });

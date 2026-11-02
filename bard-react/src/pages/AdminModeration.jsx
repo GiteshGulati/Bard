@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { moderation as moderationApi } from '../api'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/authState'
 
 export default function AdminModeration() {
   const { user } = useAuth()
@@ -11,21 +11,26 @@ export default function AdminModeration() {
   const [userAction, setUserAction] = useState('suspend')
   const [status, setStatus] = useState('open')
   const [note, setNote] = useState('')
-  const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [retry, setRetry] = useState(0)
-  const load = useCallback(async () => {
-    setLoading(true); setError('')
-    try {
-      const result = await moderationApi.reports({ status, limit: 50 })
-      setReports(result.data.items || [])
-      setSelected(current => current && (result.data.items || []).some(report => report._id === current._id) ? current : null)
-    } catch (err) { setError(err.message || 'Could not load moderation reports.') }
-    finally { setLoading(false) }
-  }, [status])
-  useEffect(() => { load() }, [load, retry])
+  const requestKey = `${status}:${retry}`
+  const [loadedKey, setLoadedKey] = useState(null)
+  const loading = loadedKey !== requestKey
+  useEffect(() => {
+    let active = true
+    moderationApi.reports({ status, limit: 50 })
+      .then(result => {
+        if (!active) return
+        setReports(result.data.items || [])
+        setSelected(current => current && (result.data.items || []).some(report => report._id === current._id) ? current : null)
+        setError('')
+      })
+      .catch(err => { if (active) setError(err.message || 'Could not load moderation reports.') })
+      .finally(() => { if (active) setLoadedKey(requestKey) })
+    return () => { active = false }
+  }, [status, retry, requestKey])
 
   async function selectReport(report) {
     setSelected(report); setNote(''); setError(''); setMessage('')
@@ -46,7 +51,7 @@ export default function AdminModeration() {
       await moderationApi.review(report._id, body)
       setMessage(status === 'resolved' ? 'Report resolved and action applied.' : 'Report dismissed.')
       setSelected(null)
-      await load()
+      setRetry(value => value + 1)
     } catch (err) { setError(err.message || 'Could not review this report.') }
     finally { setBusy(false) }
   }

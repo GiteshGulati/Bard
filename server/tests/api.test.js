@@ -6,13 +6,22 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startApp, stopApp, agent, csrf, register, PNG } from './helpers.js';
-import { User, Blog, Comment, CloudAsset, Notification, Report } from '../src/models/index.js';
+import { User, Blog, Comment, CloudAsset, Notification, Report, BlogDeletion, Like, Bookmark } from '../src/models/index.js';
 import { renderArticle } from '../src/utils/delta.js';
 import { setCloudinaryAdapterForTests } from '../src/config/cloudinary.js';
 import { processPendingNotifications } from '../src/services/notificationService.js';
+import { processPendingModerationReviews } from '../src/services/moderationService.js';
+import { processPendingBlogDeletions } from '../src/services/blogService.js';
 
 let app;
 const frontendDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../bard-react/dist');
+
+async function suppressExpectedErrorLog(callback) {
+  const original = console.error;
+  console.error = () => {};
+  try { return await callback(); }
+  finally { console.error = original; }
+}
 
 before(async () => {
   app = await startApp();
@@ -22,29 +31,27 @@ after(async () => {
   await stopApp();
 });
 
-if (fs.existsSync(path.join(frontendDist, 'index.html'))) {
-  describe('production frontend serving', () => {
-    it('serves the canonical React build, supports direct SPA routes, and keeps API 404s JSON', async () => {
-      const home = await agent().get('/');
-      assert.equal(home.status, 200);
-      assert.match(home.text, /id="root"/);
-      const assetPath = home.text.match(/src="([^\"]+\.js)"/)?.[1];
-      assert.ok(assetPath);
-      assert.equal((await agent().get(assetPath)).status, 200);
-      const refreshedRoute = await agent().get('/article/a-story-after-refresh');
-      assert.equal(refreshedRoute.status, 200);
-      assert.match(refreshedRoute.text, /id="root"/);
-      const missingApi = await agent().get('/api/v1/no-such-route');
-      assert.equal(missingApi.status, 404);
-      assert.match(missingApi.headers['content-type'], /application\/json/);
-      assert.doesNotMatch(missingApi.text, /id="root"/);
-    });
+describe('production frontend serving', () => {
+  it('requires the canonical frontend build before the backend suite runs', () => {
+    assert.ok(fs.existsSync(path.join(frontendDist, 'index.html')), 'Run npm run build before the backend test suite.');
   });
-} else {
-  describe('production frontend serving', () => {
-    it.skip('serves the canonical React build after running the root build', () => {});
+
+  it('serves the canonical React build, supports direct SPA routes, and keeps API 404s JSON', async () => {
+    const home = await agent().get('/');
+    assert.equal(home.status, 200);
+    assert.match(home.text, /id="root"/);
+    const assetPath = home.text.match(/src="([^\"]+\.js)"/)?.[1];
+    assert.ok(assetPath);
+    assert.equal((await agent().get(assetPath)).status, 200);
+    const refreshedRoute = await agent().get('/article/a-story-after-refresh');
+    assert.equal(refreshedRoute.status, 200);
+    assert.match(refreshedRoute.text, /id="root"/);
+    const missingApi = await agent().get('/api/v1/no-such-route');
+    assert.equal(missingApi.status, 404);
+    assert.match(missingApi.headers['content-type'], /application\/json/);
+    assert.doesNotMatch(missingApi.text, /id="root"/);
   });
-}
+});
 
 describe('auth', () => {
   it('registers, logs in, and returns the current user', async () => {
@@ -226,6 +233,75 @@ describe('articles', () => {
     assert.equal(gone.status, 404);
   });
 
+  it('resumes blog record cleanup after partial failures and retries Cloudinary cleanup', async () => {
+    const owner = agent();
+    const { user } = await register(owner, { username: 'deleteoutboxowner', email: 'deleteoutboxowner@example.com' });
+    const stages = [
+      [Like, 'deleteMany'],
+      [Bookmark, 'deleteMany'],
+      [Comment, 'deleteMany'],
+      [Blog, 'deleteOne'],
+    ];
+
+    for (let index = 0; index < stages.length; index += 1) {
+      const blog = await Blog.create({
+        author: user.id, title: `Deletion retry ${index}`, slug: `deletion-retry-${index}`,
+        contentDelta: { ops: [{ insert: 'Retryable deletion.\n' }] }, status: 'published',
+      });
+      await Like.create({ user: user.id, blog: blog._id });
+      await Bookmark.create({ user: user.id, blog: blog._id });
+      await Comment.create({ author: user.id, blog: blog._id, body: 'Remove me.' });
+      const [Model, method] = stages[index];
+      const original = Model[method];
+      let failOnce = true;
+      Model[method] = async function (...args) {
+        if (failOnce) { failOnce = false; const error = new Error('injected database cleanup failure'); error.code = 'EWRITE'; throw error; }
+        return original.apply(this, args);
+      };
+      try {
+        const failed = await suppressExpectedErrorLog(async () => owner.delete(`/api/v1/blogs/${blog._id}`).set('x-csrf-token', await csrf(owner)));
+        assert.equal(failed.status, 500);
+      } finally { Model[method] = original; }
+      assert.ok(await Blog.findById(blog._id));
+      assert.ok(await BlogDeletion.exists({ blog: blog._id, status: 'pending' }));
+      await processPendingBlogDeletions({ force: true });
+      assert.equal(await Blog.findById(blog._id), null);
+      assert.equal(await Like.countDocuments({ blog: blog._id }), 0);
+      assert.equal(await Bookmark.countDocuments({ blog: blog._id }), 0);
+      assert.equal(await Comment.countDocuments({ blog: blog._id }), 0);
+      assert.ok(await BlogDeletion.exists({ blog: blog._id, status: 'complete' }));
+      const repeated = await owner.delete(`/api/v1/blogs/${blog._id}`).set('x-csrf-token', await csrf(owner));
+      assert.equal(repeated.status, 200);
+    }
+
+    const assetId = new mongoose.Types.ObjectId();
+    const assetBlog = await Blog.create({
+      author: user.id, title: 'Asset retry', slug: 'asset-retry',
+      contentDelta: { ops: [{ insert: 'Asset cleanup.\n' }] }, status: 'published', coverAsset: assetId,
+      coverImagePath: 'https://res.cloudinary.com/bard-test-cloud/image/upload/test-asset',
+    });
+    await CloudAsset.create({
+      _id: assetId, owner: user.id, publicId: 'bard/covers/retry-asset',
+      secureUrl: assetBlog.coverImagePath, kind: 'cover',
+    });
+    let removeCalls = 0;
+    setCloudinaryAdapterForTests({
+      upload: async () => { throw new Error('not used'); },
+      remove: async () => { removeCalls += 1; if (removeCalls === 1) { const error = new Error('provider unavailable'); error.code = 'ECONNECTION'; throw error; } return 'ok'; },
+    });
+    try {
+      const deleted = await owner.delete(`/api/v1/blogs/${assetBlog._id}`).set('x-csrf-token', await csrf(owner));
+      assert.equal(deleted.status, 200);
+      assert.equal(await Blog.findById(assetBlog._id), null);
+      assert.ok(await CloudAsset.findById(assetId));
+      assert.ok(await BlogDeletion.exists({ blog: assetBlog._id, status: 'pending' }));
+      await processPendingBlogDeletions({ force: true });
+      assert.equal(await CloudAsset.findById(assetId), null);
+      assert.ok(await BlogDeletion.exists({ blog: assetBlog._id, status: 'complete' }));
+      assert.equal(removeCalls, 2);
+    } finally { setCloudinaryAdapterForTests(null); }
+  });
+
   it('rejects unauthorized edits', async () => {
     const owner = agent();
     await register(owner, { username: 'owner1', email: 'owner1@example.com' });
@@ -322,6 +398,52 @@ describe('social', () => {
       body: 'A revised note.',
     });
     assert.equal(edited.status, 200);
+  });
+
+  it('paginates comments in order, excludes hidden rows for readers, and validates cursors', async () => {
+    const author = agent();
+    await register(author, { username: 'commentpageauthor', email: 'commentpageauthor@example.com' });
+    const token = await csrf(author);
+    const article = await author.post('/api/v1/blogs').set('x-csrf-token', token).send({
+      title: 'Comment pagination', content: { ops: [{ insert: 'A paginated discussion.\n' }] }, status: 'published',
+    });
+    const blogId = article.body.data.blog.id;
+    const reader = agent();
+    await register(reader, { username: 'commentpagereader', email: 'commentpagereader@example.com' });
+    const readerToken = await csrf(reader);
+    const ids = [];
+    for (let index = 0; index < 5; index += 1) {
+      const created = await reader.post(`/api/v1/blogs/${blogId}/comments`).set('x-csrf-token', readerToken).send({ body: `Comment ${index}` });
+      assert.equal(created.status, 201);
+      ids.push(created.body.data.comment.id);
+    }
+    await Comment.updateOne({ _id: ids[1] }, { $set: { status: 'hidden' } });
+
+    const first = await reader.get(`/api/v1/blogs/${blogId}/comments?limit=2`);
+    assert.equal(first.status, 200);
+    assert.deepEqual(first.body.data.items.map(item => item.id), [ids[0], ids[2]]);
+    assert.ok(first.body.data.nextCursor);
+    const second = await reader.get(`/api/v1/blogs/${blogId}/comments?limit=2&cursor=${encodeURIComponent(first.body.data.nextCursor)}`);
+    assert.deepEqual(second.body.data.items.map(item => item.id), [ids[3], ids[4]]);
+    assert.equal(second.body.data.nextCursor, null);
+
+    const admin = agent();
+    await register(admin, { username: 'commentpageadmin', email: 'commentpageadmin@example.com' });
+    await User.updateOne({ username: 'commentpageadmin' }, { role: 'admin' });
+    const adminPage = await admin.get(`/api/v1/blogs/${blogId}/comments?limit=10`);
+    assert.ok(adminPage.body.data.items.some(item => item.id === ids[1] && item.status === 'hidden'));
+
+    const invalid = await reader.get(`/api/v1/blogs/${blogId}/comments?cursor=invalid`);
+    assert.equal(invalid.status, 400);
+    assert.equal(invalid.body.error.code, 'BAD_REQUEST');
+
+    const emptyArticle = await author.post('/api/v1/blogs').set('x-csrf-token', await csrf(author)).send({
+      title: 'Empty discussion', content: { ops: [{ insert: 'No replies yet.\n' }] }, status: 'published',
+    });
+    const empty = await reader.get(`/api/v1/blogs/${emptyArticle.body.data.blog.id}/comments`);
+    assert.equal(empty.status, 200);
+    assert.deepEqual(empty.body.data.items, []);
+    assert.equal(empty.body.data.nextCursor, null);
   });
 
   it('keeps comment success when notification writes fail, then retries idempotently', async () => {
@@ -495,6 +617,105 @@ describe('security', () => {
     assert.equal(restoredTokenResponse.status, 200, JSON.stringify(restoredTokenResponse.body));
     response = await restoredLogin.post('/api/v1/auth/login').set('x-csrf-token', restoredTokenResponse.body.data.csrfToken).send({ identifier: targetUser.email, password: 'Secret123' });
     assert.equal(response.status, 200);
+  });
+
+  it('recovers moderation reviews after failures before, during, and after target persistence', async () => {
+    const reporter = agent();
+    await register(reporter, { username: 'recoveryreporter', email: 'recoveryreporter@example.com' });
+    const author = agent();
+    await register(author, { username: 'recoveryauthor', email: 'recoveryauthor@example.com' });
+    const blogResponse = await author.post('/api/v1/blogs').set('x-csrf-token', await csrf(author)).send({
+      title: 'Moderation recovery', content: { ops: [{ insert: 'Review target.\n' }] }, status: 'published',
+    });
+    const admin = agent();
+    await register(admin, { username: 'recoveryadmin', email: 'recoveryadmin@example.com' });
+    await User.updateOne({ username: 'recoveryadmin' }, { role: 'admin' });
+    const makeReport = async (targetType, targetId) => {
+      const response = await reporter.post('/api/v1/reports').set('x-csrf-token', await csrf(reporter)).send({ targetType, targetId, reason: 'other' });
+      assert.equal(response.status, 201);
+      return response.body.data.report._id;
+    };
+    const review = async (id, body = { status: 'resolved', hideTarget: true }) => admin.patch(`/api/v1/admin/reports/${id}`).set('x-csrf-token', await csrf(admin)).send(body);
+    const hideReview = { status: 'resolved', hideTarget: true };
+
+    const pendingSaveReport = await makeReport('article', blogResponse.body.data.blog.id);
+    const originalReportSave = Report.prototype.save;
+    let failJournalOnce = true;
+    Report.prototype.save = async function (...args) {
+      if (failJournalOnce && this.pendingReview?.operationId) {
+        failJournalOnce = false;
+        const error = new Error('injected report journal failure'); error.code = 'EWRITE'; throw error;
+      }
+      return originalReportSave.apply(this, args);
+    };
+    try {
+      const failed = await suppressExpectedErrorLog(() => review(pendingSaveReport, hideReview));
+      assert.equal(failed.status, 500);
+    } finally { Report.prototype.save = originalReportSave; }
+    assert.equal((await Blog.findById(blogResponse.body.data.blog.id)).status, 'published');
+    assert.equal((await review(pendingSaveReport, hideReview)).status, 200);
+    assert.equal((await Blog.findById(blogResponse.body.data.blog.id)).status, 'hidden');
+
+    const targetFailureReport = await makeReport('article', blogResponse.body.data.blog.id);
+    const originalFindByIdAndUpdate = Blog.findByIdAndUpdate;
+    let failTargetOnce = true;
+    Blog.findByIdAndUpdate = async function (...args) {
+      if (failTargetOnce) { failTargetOnce = false; const error = new Error('injected target failure'); error.code = 'EWRITE'; throw error; }
+      return originalFindByIdAndUpdate.apply(this, args);
+    };
+    try {
+      const failed = await suppressExpectedErrorLog(() => review(targetFailureReport, hideReview));
+      assert.equal(failed.status, 500);
+    } finally { Blog.findByIdAndUpdate = originalFindByIdAndUpdate; }
+    assert.equal((await Report.findById(targetFailureReport)).status, 'open');
+    await processPendingModerationReviews();
+    assert.equal((await Report.findById(targetFailureReport)).status, 'resolved');
+
+    const userStageAgent = agent();
+    const { user: userStageTarget } = await register(userStageAgent, { username: 'recoveryuserstage', email: 'recoveryuserstage@example.com' });
+    const userStageReport = await makeReport('user', userStageTarget.id);
+    const originalUserUpdateOne = User.updateOne;
+    let failUserOnce = true;
+    User.updateOne = async function (...args) {
+      if (failUserOnce && String(args[0]?._id) === String(userStageTarget.id)) {
+        failUserOnce = false;
+        const error = new Error('injected user persistence failure'); error.code = 'EWRITE'; throw error;
+      }
+      return originalUserUpdateOne.apply(this, args);
+    };
+    try {
+      const failed = await suppressExpectedErrorLog(() => review(userStageReport, { status: 'resolved', userAction: 'suspend' }));
+      assert.equal(failed.status, 500);
+    } finally { User.updateOne = originalUserUpdateOne; }
+    assert.equal((await Report.findById(userStageReport)).status, 'open');
+    await processPendingModerationReviews();
+    assert.equal((await User.findById(userStageTarget.id)).moderationStatus, 'suspended');
+    assert.equal((await Report.findById(userStageReport)).status, 'resolved');
+
+    const commitAgent = agent();
+    const { user: targetUser } = await register(commitAgent, { username: 'recoverycommittarget', email: 'recoverycommittarget@example.com' });
+    const userReport = await makeReport('user', targetUser.id);
+    let failCommitOnce = true;
+    Report.prototype.save = async function (...args) {
+      if (failCommitOnce && this.status === 'resolved' && !this.pendingReview) {
+        failCommitOnce = false;
+        const error = new Error('injected report completion failure'); error.code = 'EWRITE'; throw error;
+      }
+      return originalReportSave.apply(this, args);
+    };
+    try {
+      const failed = await suppressExpectedErrorLog(() => review(userReport, { status: 'resolved', userAction: 'suspend' }));
+      assert.equal(failed.status, 500);
+    } finally { Report.prototype.save = originalReportSave; }
+    const suspendedOnce = await User.findById(targetUser.id);
+    const suspendedVersion = suspendedOnce.sessionVersion;
+    assert.equal(suspendedOnce.moderationHistory.filter(item => item.action === 'suspend').length, 1);
+    await processPendingModerationReviews();
+    const recoveredUser = await User.findById(targetUser.id);
+    assert.equal(recoveredUser.moderationStatus, 'suspended');
+    assert.equal(recoveredUser.sessionVersion, suspendedVersion);
+    assert.equal(recoveredUser.moderationHistory.filter(item => item.action === 'suspend').length, 1);
+    assert.equal((await Report.findById(userReport)).status, 'resolved');
   });
 
   it('sanitizes rich-text XSS', () => {

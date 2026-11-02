@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { blogs as blogsApi, users as usersApi } from '../api'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/authState'
 import BlogCard from '../components/BlogCard'
 
 function groupByAuthor(posts) {
@@ -26,22 +26,33 @@ export default function Following() {
   const [unfollowing, setUnfollowing] = useState('')
   const [unfollowError, setUnfollowError] = useState('')
 
-  const load = useCallback(async (nextCursor = null, append = false) => {
-    if (!user) { setLoading(false); setPosts([]); setCursor(null); return }
-    if (append) setMoreLoading(true); else setLoading(true)
-    setError('')
-    try {
-      const result = await blogsApi.feed({ limit: 12, ...(nextCursor ? { cursor: nextCursor } : {}) })
-      const items = result?.data?.items || []
-      setPosts(current => append ? [...current, ...items] : items)
-      setCursor(result?.data?.nextCursor || null)
-    } catch (err) { setError(err.message || 'Could not load your following feed.') }
-    finally { setLoading(false); setMoreLoading(false) }
-  }, [user])
-
-  useEffect(() => { load() }, [load, retry])
+  useEffect(() => {
+    if (!user) return undefined
+    let active = true
+    blogsApi.feed({ limit: 12 })
+      .then(result => {
+        if (!active) return
+        setPosts(result?.data?.items || [])
+        setCursor(result?.data?.nextCursor || null)
+        setError('')
+      })
+      .catch(err => { if (active) setError(err.message || 'Could not load your following feed.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [user, retry])
 
   const groups = useMemo(() => groupByAuthor(posts), [posts])
+
+  async function loadMore() {
+    if (!cursor || moreLoading) return
+    setMoreLoading(true)
+    try {
+      const result = await blogsApi.feed({ limit: 12, cursor })
+      setPosts(current => [...current, ...(result?.data?.items || [])])
+      setCursor(result?.data?.nextCursor || null)
+    } catch (err) { setError(err.message || 'Could not load more stories.') }
+    finally { setMoreLoading(false) }
+  }
 
   async function unfollow(author) {
     if (!author?.id || unfollowing) return
@@ -63,7 +74,7 @@ export default function Following() {
 
         {!user && <div style={{ background: '#EAE2D8', padding: '1.5rem 2rem', borderRadius: 2, marginBottom: '2rem', fontSize: '.875rem', color: '#6B7280' }}><Link to="/login" style={{ color: '#000', fontWeight: 700 }}>Log in</Link> to follow writers and get a personalised reading feed.</div>}
         {user && loading && <p role="status" style={{ padding: '2rem 0', color: '#6B7280' }}>Loading your feed…</p>}
-        {user && !loading && error && <p role="alert" style={{ padding: '2rem 0', color: '#6B7280' }}>{error} <button type="button" onClick={() => setRetry(value => value + 1)}>Retry</button></p>}
+        {user && !loading && error && <p role="alert" style={{ padding: '2rem 0', color: '#6B7280' }}>{error} <button type="button" onClick={() => { setLoading(true); setRetry(value => value + 1) }}>Retry</button></p>}
         {unfollowError && <p role="alert" style={{ marginBottom: '1rem', color: '#B91C1C' }}>{unfollowError}</p>}
         {user && !loading && !error && groups.length === 0 && <section style={{ background: '#EAE2D8', padding: '2rem', borderRadius: 2 }}><h2 className="font-display" style={{ fontSize: '1.5rem', textTransform: 'uppercase', marginBottom: '.5rem' }}>No stories in your circle yet</h2><p style={{ color: '#6B7280', marginBottom: '1rem' }}>Follow writers from their profiles to see new stories here.</p><Link to="/blogs" style={{ color: '#000', fontWeight: 700 }}>Explore stories →</Link></section>}
 
@@ -85,7 +96,7 @@ export default function Following() {
             </section>
           ))}
         </div>}
-        {cursor && !loading && !error && <div style={{ textAlign: 'center', marginTop: '2rem' }}><button type="button" className="topic-clear" style={{ background: '#000' }} disabled={moreLoading} onClick={() => load(cursor, true)}>{moreLoading ? 'Loading…' : 'Load more stories'}</button></div>}
+        {cursor && !loading && !error && <div style={{ textAlign: 'center', marginTop: '2rem' }}><button type="button" className="topic-clear" style={{ background: '#000' }} disabled={moreLoading} onClick={loadMore}>{moreLoading ? 'Loading…' : 'Load more stories'}</button></div>}
       </main>
     </div>
   )

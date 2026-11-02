@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { Blog, Like, Bookmark, Follow, Comment, CloudAsset } from '../models/index.js';
+import { Blog, Like, Bookmark, Follow, Comment, CloudAsset, BlogDeletion } from '../models/index.js';
 import { badRequest, forbidden, notFound } from '../utils/errors.js';
 import { parse } from '../validators/common.js';
 import { blogCreateSchema, blogUpdateSchema } from '../validators/blog.js';
@@ -8,7 +8,7 @@ import { publicBlog } from '../utils/dto.js';
 import { applyCursor, nextCursorFrom } from '../utils/pagination.js';
 import { slugify, withSuffix } from '../utils/slug.js';
 import { processPendingNotificationsSafely } from './notificationService.js';
-import { cleanupAssetIfUnreferenced } from './uploadService.js';
+import { cleanupAssetIfUnreferenced, cleanupAssetIfUnreferencedStrict } from './uploadService.js';
 import { isCloudinaryImageUrl } from '../config/cloudinary.js';
 
 function canSee(blog, viewer) {
@@ -141,16 +141,90 @@ export async function updateBlog(blogId, viewer, payload, coverAsset = null) {
 
 export async function deleteBlog(blogId, viewer) {
   const blog = await Blog.findById(blogId);
-  if (!blog) throw notFound('Article not found');
-  if (String(blog.author) !== String(viewer._id) && viewer.role !== 'admin') throw forbidden();
-  const assetsToClean = [blog.coverAsset, ...(blog.inlineAssets || [])].filter(Boolean);
-  await Promise.all([
-    Like.deleteMany({ blog: blog._id }),
-    Bookmark.deleteMany({ blog: blog._id }),
-    Comment.deleteMany({ blog: blog._id }),
-    blog.deleteOne(),
-  ]);
-  for (const assetId of assetsToClean) await cleanupAssetIfUnreferenced(assetId, blog.author);
+  let deletion;
+  if (blog) {
+    if (String(blog.author) !== String(viewer._id) && viewer.role !== 'admin') throw forbidden();
+    deletion = await BlogDeletion.findOneAndUpdate(
+      { blog: blog._id },
+      { $setOnInsert: {
+        blog: blog._id,
+        owner: blog.author,
+        assetIds: [...new Set([blog.coverAsset, ...(blog.inlineAssets || [])].filter(Boolean).map(String))],
+        status: 'pending',
+        nextAttemptAt: new Date(),
+      } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+  } else {
+    deletion = await BlogDeletion.findOne({ blog: blogId });
+    if (!deletion || (String(deletion.owner) !== String(viewer._id) && viewer.role !== 'admin')) throw notFound('Article not found');
+    if (deletion.status === 'complete') return;
+  }
+  if (deletion.status !== 'complete') await runBlogDeletion(deletion);
+}
+
+function safeErrorCode(error) {
+  return /^[A-Z0-9_-]{1,32}$/.test(error?.code || '') ? error.code : 'UNKNOWN';
+}
+
+async function deferBlogDeletion(deletion, error) {
+  const code = safeErrorCode(error);
+  await BlogDeletion.updateOne({ _id: deletion._id, status: 'pending' }, {
+    $inc: { attempts: 1 },
+    $set: { lastErrorCode: code, nextAttemptAt: new Date(Date.now() + 30_000) },
+  }).catch(() => {});
+  console.warn('Blog deletion deferred for retry', { blogId: String(deletion.blog), code });
+}
+
+async function runBlogDeletion(deletion) {
+  if (deletion.status === 'complete') return;
+  try {
+    await Like.deleteMany({ blog: deletion.blog });
+    await Bookmark.deleteMany({ blog: deletion.blog });
+    await Comment.deleteMany({ blog: deletion.blog });
+    await Blog.deleteOne({ _id: deletion.blog });
+  } catch (error) {
+    await deferBlogDeletion(deletion, error);
+    throw error;
+  }
+
+  try {
+    for (const assetId of deletion.assetIds) {
+      await cleanupAssetIfUnreferencedStrict(assetId, deletion.owner);
+    }
+  } catch (error) {
+    await deferBlogDeletion(deletion, error);
+    return;
+  }
+  try {
+    await BlogDeletion.updateOne({ _id: deletion._id }, {
+      $set: { status: 'complete', lastErrorCode: null },
+    });
+  } catch (error) {
+    await deferBlogDeletion(deletion, error);
+    throw error;
+  }
+}
+
+export async function processPendingBlogDeletions({ limit = 50, force = false } = {}) {
+  const query = { status: 'pending' };
+  if (!force) query.nextAttemptAt = { $lte: new Date() };
+  const jobs = await BlogDeletion.find(query).sort({ nextAttemptAt: 1 }).limit(limit);
+  for (const job of jobs) {
+    try {
+      await runBlogDeletion(job);
+    } catch (error) {
+      // runBlogDeletion already records and logs the retry state.
+    }
+  }
+}
+
+export async function processPendingBlogDeletionsSafely() {
+  try {
+    await processPendingBlogDeletions();
+  } catch (error) {
+    console.warn('Blog deletion scan deferred', { code: safeErrorCode(error) });
+  }
 }
 
 export async function getBySlug(slug, viewer) {

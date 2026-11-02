@@ -8,44 +8,46 @@ export default function Blogs() {
   const [searchParams, setSearchParams] = useSearchParams()
   const topic = searchParams.get('topic') || ''
   const initialQuery = searchParams.get('q') || ''
-  const [query, setQuery] = useState(initialQuery)
+  const [queryDraft, setQueryDraft] = useState({ source: initialQuery, value: initialQuery })
+  const query = queryDraft.source === initialQuery ? queryDraft.value : initialQuery
   const [posts, setPosts] = useState([])
   const [cursor, setCursor] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loadedRequest, setLoadedRequest] = useState(null)
   const [moreLoading, setMoreLoading] = useState(false)
   const [error, setError] = useState('')
   const [retryKey, setRetryKey] = useState(0)
-  const [searchOpen, setSearchOpen] = useState(Boolean(initialQuery))
+  const [searchState, setSearchState] = useState({ source: initialQuery, value: Boolean(initialQuery) })
+  const searchOpen = searchState.source === initialQuery ? searchState.value : Boolean(initialQuery)
+  const requestKey = `${initialQuery}\u0000${topic}\u0000${retryKey}`
+  const loading = loadedRequest !== requestKey
   const searchRef = useRef(null)
   const topicLabel = TOPICS.find(item => item.id === topic)?.label || topic
 
-  useEffect(() => { setQuery(initialQuery); setSearchOpen(Boolean(initialQuery)) }, [initialQuery])
-
   useEffect(() => {
     let active = true
-    setLoading(true); setError(''); setPosts([]); setCursor(null)
     const request = initialQuery.trim()
       ? blogsApi.search({ q: initialQuery.trim(), ...(topic ? { tag: topic } : {}), limit: 12 })
       : blogsApi.list({ ...(topic ? { tag: topic } : {}), limit: 12 })
     request.then(result => {
       if (!active) return
+      setError('')
       setPosts(result?.data?.items || [])
       setCursor(result?.data?.nextCursor || null)
     }).catch(err => { if (active) setError(err.message || 'Could not load stories.') })
-      .finally(() => { if (active) setLoading(false) })
+      .finally(() => { if (active) setLoadedRequest(requestKey) })
     return () => { active = false }
-  }, [initialQuery, topic, retryKey])
+  }, [initialQuery, topic, retryKey, requestKey])
 
   const toggleSearch = useCallback(() => {
     if (searchOpen) {
-      setSearchOpen(false)
-      setQuery('')
+      setSearchState({ source: initialQuery, value: false })
+      setQueryDraft({ source: initialQuery, value: '' })
       setSearchParams(topic ? { topic } : {})
       return
     }
-    setSearchOpen(true)
+    setSearchState({ source: initialQuery, value: true })
     window.setTimeout(() => searchRef.current?.focus(), 50)
-  }, [searchOpen, setSearchParams, topic])
+  }, [initialQuery, searchOpen, setSearchParams, topic])
 
   function submitSearch(event) {
     event.preventDefault()
@@ -81,7 +83,7 @@ export default function Blogs() {
               placeholder="Search posts..."
               aria-label="Search blog posts"
               value={query}
-              onChange={event => setQuery(event.target.value)}
+              onChange={event => setQueryDraft({ source: initialQuery, value: event.target.value })}
               onKeyDown={event => event.key === 'Escape' && toggleSearch()}
               className={`search-input${searchOpen ? ' open' : ''}`}
               tabIndex={searchOpen ? 0 : -1}
@@ -111,7 +113,7 @@ export default function Blogs() {
           {!loading && !error && posts.length === 0 && <p style={{ textAlign: 'center', padding: '3rem 0', fontSize: '.9rem', color: '#6B7280' }}>No posts match your search.</p>}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            {posts.map(post => <BlogCard key={post.id} post={post} onChange={updated => setPosts(current => current.map(item => item.id === updated.id ? { ...item, ...updated } : item))} />)}
+            {!loading && posts.map(post => <BlogCard key={post.id} post={post} onChange={updated => setPosts(current => current.map(item => item.id === updated.id ? { ...item, ...updated } : item))} />)}
           </div>
           {!loading && cursor && <div style={{ textAlign: 'center', marginTop: '2rem' }}><button type="button" className="topic-clear" style={{ background: '#000' }} disabled={moreLoading} onClick={loadMore}>{moreLoading ? 'Loading…' : 'Load more posts'}</button></div>}
         </div>

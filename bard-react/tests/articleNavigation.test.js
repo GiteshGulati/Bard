@@ -12,8 +12,9 @@ let AuthContext
 
 before(async () => {
   vite = await createServer({ configFile: './vite.config.js', server: { middlewareMode: true }, appType: 'custom' })
-  ;({ default: BlogCard, articlePath } = await vite.ssrLoadModule('/src/components/BlogCard.jsx'))
-  ;({ AuthContext } = await vite.ssrLoadModule('/src/context/AuthContext.jsx'))
+  ;({ default: BlogCard } = await vite.ssrLoadModule('/src/components/BlogCard.jsx'))
+  ;({ articlePath } = await vite.ssrLoadModule('/src/components/articlePath.js'))
+  ;({ AuthContext } = await vite.ssrLoadModule('/src/context/authState.js'))
 })
 
 after(async () => { await vite?.close() })

@@ -11,6 +11,18 @@ const reportSchema = new mongoose.Schema(
     reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     resolutionNote: { type: String, default: '', maxlength: 1000 },
     resolvedAt: { type: Date, default: null },
+    pendingReview: {
+      type: new mongoose.Schema({
+        status: { type: String, enum: ['resolved', 'dismissed'], required: true },
+        reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        operationId: { type: mongoose.Schema.Types.ObjectId, required: true },
+        resolutionNote: { type: String, default: '', maxlength: 1000 },
+        hideTarget: { type: Boolean, default: false },
+        userAction: { type: String, enum: ['suspend', 'restore'], default: null },
+      }, { _id: false }),
+      default: null,
+      select: false,
+    },
   },
   { timestamps: true },
 );

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { users as usersApi } from '../api'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/authState'
 import BlogCard from '../components/BlogCard'
 
 export default function PublicProfile() {
@@ -10,24 +10,26 @@ export default function PublicProfile() {
   const { user } = useAuth()
   const [profile, setProfile] = useState(null)
   const [posts, setPosts] = useState([])
-  const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
   const [retry, setRetry] = useState(0)
+  const [loadedKey, setLoadedKey] = useState(null)
+  const requestKey = `${username}:${retry}`
+  const loading = loadedKey !== requestKey
 
   useEffect(() => {
     let active = true
-    setLoading(true); setError('')
     Promise.all([usersApi.get(username), usersApi.myBlogs(username, { limit: 20 })])
       .then(([userResponse, postResponse]) => {
         if (!active) return
+        setError('')
         setProfile(userResponse.data.user || userResponse.data)
         setPosts(postResponse.data.items || [])
       }).catch(err => { if (active) setError(err.message || 'Could not load this profile.') })
-      .finally(() => { if (active) setLoading(false) })
+      .finally(() => { if (active) setLoadedKey(requestKey) })
     return () => { active = false }
-  }, [username, retry])
+  }, [username, retry, requestKey])
 
   async function toggleFollow() {
     if (!user) return navigate('/login', { state: { from: `/u/${encodeURIComponent(username)}` } })

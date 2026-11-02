@@ -143,7 +143,10 @@ export const blogs = {
 
 // ── Comments ─────────────────────────────────────────────────────────────────
 export const comments = {
-  list: (blogId) => request(`/blogs/${blogId}/comments`),
+  list: (blogId, params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`/blogs/${blogId}/comments${qs ? '?' + qs : ''}`)
+  },
   create: (blogId, body) => request(`/blogs/${blogId}/comments`, { method: 'POST', json: body }),
   update: (commentId, body) => request(`/comments/${commentId}`, { method: 'PATCH', json: body }),
   delete: (commentId) => request(`/comments/${commentId}`, { method: 'DELETE' }),

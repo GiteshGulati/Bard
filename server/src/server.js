@@ -2,11 +2,15 @@ import { createApp } from './app.js';
 import { connectDb, disconnectDb } from './config/db.js';
 import { env } from './config/env.js';
 import { processPendingNotificationsSafely } from './services/notificationService.js';
+import { processPendingModerationReviewsSafely } from './services/moderationService.js';
+import { processPendingBlogDeletionsSafely } from './services/blogService.js';
 
 const app = await createApp();
 try {
   await connectDb();
   await processPendingNotificationsSafely();
+  await processPendingModerationReviewsSafely();
+  await processPendingBlogDeletionsSafely();
 } catch (error) {
   console.error(error.message);
   if (env.NODE_ENV === 'development' && error.diagnostic) {
@@ -20,6 +24,8 @@ if (process.exitCode) process.exit(process.exitCode);
 
 const notificationRetryTimer = setInterval(() => {
   processPendingNotificationsSafely();
+  processPendingModerationReviewsSafely();
+  processPendingBlogDeletionsSafely();
 }, 30_000);
 notificationRetryTimer.unref();
 

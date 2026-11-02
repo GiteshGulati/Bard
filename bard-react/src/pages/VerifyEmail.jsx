@@ -1,7 +1,7 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { auth as authApi } from '../api'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/authState'
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams()
@@ -9,32 +9,30 @@ export default function VerifyEmail() {
   const { refreshUser } = useAuth()
 
   // 'verifying' | 'success' | 'error'
-  const [status, setStatus] = useState('verifying')
-  const [message, setMessage] = useState('')
+  const [result, setResult] = useState(null)
+  const currentResult = result?.token === token ? result : null
+  const status = !token ? 'error' : currentResult?.status || 'verifying'
+  const message = !token
+    ? 'No verification token was found in this link. Please check your inbox and try again.'
+    : currentResult?.message || ''
 
   useEffect(() => {
-    if (!token) {
-      setStatus('error')
-      setMessage('No verification token was found in this link. Please check your inbox and try again.')
-      return
-    }
+    if (!token) return undefined
 
     let cancelled = false
     authApi.verifyEmail({ token })
       .then(async (res) => {
         if (cancelled) return
         await refreshUser()
-        setStatus('success')
-        setMessage(res?.data?.message || 'Your email has been verified.')
+        setResult({ token, status: 'success', message: res?.data?.message || 'Your email has been verified.' })
       })
       .catch((err) => {
         if (cancelled) return
-        setStatus('error')
-        setMessage(err.message || 'Verification failed. The link may have expired or already been used.')
+        setResult({ token, status: 'error', message: err.message || 'Verification failed. The link may have expired or already been used.' })
       })
 
     return () => { cancelled = true }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token, refreshUser])
 
   return (
     <div style={{ background: '#F2EBE1', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

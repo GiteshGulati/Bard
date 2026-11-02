@@ -5,19 +5,27 @@ import { commentSchema } from '../validators/blog.js';
 import { sanitizeComment } from '../utils/delta.js';
 import { publicComment } from '../utils/dto.js';
 import { processPendingNotificationsSafely } from './notificationService.js';
+import { applyCursor, nextCursorFrom } from '../utils/pagination.js';
 
-export async function listComments(blogId, viewer) {
+export async function listComments(blogId, viewer, { cursor, limit = 20 } = {}) {
   const blog = await Blog.findById(blogId);
   if (!blog) throw notFound('Article not found');
   const owner = viewer && String(viewer._id) === String(blog.author);
   const admin = viewer?.role === 'admin';
   if (blog.status !== 'published' && !owner && !admin) throw notFound('Article not found');
-  const rows = await Comment.find({ blog: blogId })
-    .sort({ createdAt: 1 })
+  const query = { blog: blogId };
+  if (!admin) query.status = { $ne: 'hidden' };
+  applyCursor(query, cursor, 'createdAt', 1);
+  const rows = await Comment.find(query)
+    .sort({ createdAt: 1, _id: 1 })
+    .limit(limit + 1)
     .populate('author', 'username displayName avatarPath bio websiteUrl role createdAt');
-  return rows
-    .filter((row) => row.status !== 'hidden' || admin)
-    .map(publicComment);
+  const hasMore = rows.length > limit;
+  const page = rows.slice(0, limit);
+  return {
+    items: page.map(publicComment),
+    nextCursor: hasMore ? nextCursorFrom(page, limit, 'createdAt') : null,
+  };
 }
 
 export async function addComment(userId, blogId, payload) {

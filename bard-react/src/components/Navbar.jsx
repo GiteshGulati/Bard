@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/authState'
 
 export default function Navbar() {
   const { user, logout } = useAuth()

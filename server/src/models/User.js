@@ -21,6 +21,7 @@ const userSchema = new mongoose.Schema(
     moderationHistory: [{
       action: { type: String, enum: ['suspend', 'restore'], required: true },
       moderator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+      operationId: { type: mongoose.Schema.Types.ObjectId, default: null },
       reason: { type: String, default: '', maxlength: 1000 },
       createdAt: { type: Date, default: Date.now },
     }],
