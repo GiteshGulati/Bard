@@ -59,7 +59,7 @@ export default function AdminModeration() {
     {message && <p role="status">{message}</p>}{error && <p role="alert" style={{ color: '#B91C1C' }}>{error} <button type="button" onClick={() => setRetry(v => v + 1)}>Retry</button></p>}
     {loading && <p role="status">Loading reports…</p>}
     {!loading && !error && !reports.length && <p>No open reports.</p>}
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 1fr) minmax(300px, 1.4fr)', gap: '1.5rem', marginTop: '1.5rem' }}>
+    <div className="admin-moderation-layout" style={{ marginTop: '1.5rem' }}>
       <section aria-label="Open reports" style={{ display: 'grid', alignContent: 'start', gap: '.5rem' }}>{reports.map(report => <button key={report._id} type="button" onClick={() => selectReport(report)} style={{ textAlign: 'left', padding: '1rem', background: selected?.report?._id === report._id ? '#EAE2D8' : '#fff', border: 0 }}><strong>{report.targetType}</strong> · {report.reason}<br /><small>{new Date(report.createdAt).toLocaleString()}</small></button>)}</section>
       {selected?.report && <section style={{ background: '#EAE2D8', padding: '1.25rem' }}><h2>Report details</h2><p>Type: {selected.report.targetType}</p><p>Reason: {selected.report.reason}</p><p>Explanation: {selected.report.explanation || 'No explanation provided.'}</p><p>Reported by: {selected.report.reporter?.displayName || selected.report.reporter?.username || 'Member'}</p>
         <div style={{ margin: '1rem 0', padding: '1rem', background: '#fff' }}><h3>Target</h3>{selected.target ? <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{JSON.stringify(selected.target, null, 2)}</pre> : <p>Target is no longer available.</p>}</div>

@@ -144,13 +144,18 @@ export default function Home() {
       <UserPostsSection />
 
       {/* NEWSLETTER */}
-      <section id="contact" style={{ maxWidth: 1280, margin: '0 auto', padding: '5rem 1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+      <section id="contact" className="home-contact" style={{ maxWidth: 1280, margin: '0 auto', padding: '5rem 1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
         <div>
           <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#6B7280', marginBottom: '0.75rem' }}>Stay grounded</p>
           <h2 className="font-display" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', transform: 'scaleX(1.08)', transformOrigin: 'left' }}>Weekly Words<br />Worth Reading.</h2>
           <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#6B7280', lineHeight: 1.7, maxWidth: 360 }}>One thoughtful email a week. New stories, quiet recommendations, and ideas for living better — no spam, no noise. Ever.</p>
         </div>
-        <div style={{ maxWidth: 480 }}><p role="status">Newsletter subscriptions are not available yet. We won’t collect your email until this feature is connected.</p></div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: 480 }}>
+          <input className="nl-input" type="text" placeholder="Your Name" aria-label="Your name" disabled />
+          <input className="nl-input" type="email" placeholder="Email Address" aria-label="Email address" disabled />
+          <button type="button" className="btn-primary" disabled style={{ background: '#000', color: '#fff', fontWeight: 600, padding: '.75rem', fontSize: '.875rem', letterSpacing: '.1em', textTransform: 'uppercase', opacity: .55, cursor: 'not-allowed' }}>Subscribe</button>
+          <p role="status" style={{ fontSize: '.75rem', color: '#6B7280' }}>Subscriptions are not available yet. We will not collect your email here.</p>
+        </div>
       </section>
 
       {/* FOOTER */}

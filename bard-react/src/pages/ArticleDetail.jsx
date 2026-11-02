@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { blogs as blogsApi, comments as commentsApi, social as socialApi } from '../api'
-import BlogCard from '../components/BlogCard'
 import { useAuth } from '../context/AuthContext'
 
 export default function ArticleDetail({ byId = false }) {
@@ -99,55 +98,75 @@ export default function ArticleDetail({ byId = false }) {
     }
   }
 
-  if (loading) return <main role="status" style={{ maxWidth: 850, margin: '4rem auto', padding: '1.5rem' }}>Loading story…</main>
-  if (error) return <main style={{ maxWidth: 850, margin: '4rem auto', padding: '1.5rem' }}><p role="alert">{error}</p><button type="button" onClick={() => setRetry(value => value + 1)}>Retry</button><button type="button" onClick={() => navigate(returnTo)}>Back to stories</button></main>
+  if (loading) return <div className="post-overlay open"><div className="overlay-scroll" role="status">Loading story…</div></div>
+  if (error) return <div className="post-overlay open"><div className="overlay-scroll"><button className="overlay-close" type="button" onClick={() => navigate(returnTo)}>← Back to posts</button><p role="alert" style={{ margin: '2rem 0', color: '#6B7280' }}>{error}</p><button className="ov-comment-submit" type="button" onClick={() => setRetry(value => value + 1)}>Retry</button></div></div>
   if (!blog) return null
 
   return (
-    <main style={{ maxWidth: 850, margin: '0 auto', padding: '2rem 1.5rem 5rem', background: '#F2EBE1', minHeight: '100vh' }}>
-      <button type="button" onClick={() => navigate(returnTo)} style={{ marginBottom: '2rem' }}>← Back to stories</button>
-      {blog.coverImageUrl && <img src={blog.coverImageUrl} alt="" style={{ width: '100%', maxHeight: 460, objectFit: 'cover', marginBottom: '2rem' }} />}
-      <p style={{ textTransform: 'uppercase', letterSpacing: '.12em', color: '#6B7280', fontSize: '.75rem' }}>{blog.status === 'published' ? 'Published' : `${blog.status} · only you and permitted administrators can view this`}</p>
-      <h1 className="font-display" style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', lineHeight: 1.05, margin: '1rem 0' }}>{blog.title}</h1>
-      {blog.excerpt && <p style={{ fontSize: '1.1rem', color: '#5E5A54', lineHeight: 1.7 }}>{blog.excerpt}</p>}
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', margin: '1.5rem 0', color: '#6B7280' }}>
-        {blog.author?.username && <Link to={`/u/${encodeURIComponent(blog.author.username)}`} style={{ color: 'inherit', fontWeight: 700 }}>{blog.author.displayName || blog.author.username}</Link>}
-        {blog.publishedAt && <time dateTime={blog.publishedAt}>{new Date(blog.publishedAt).toLocaleDateString()}</time>}
-        <span>{blog.readingTimeMinutes || 1} min read</span>
-      </div>
-      {!!blog.tags?.length && <div style={{ display: 'flex', gap: '.5rem', flexWrap: 'wrap', marginBottom: '2rem' }}>{blog.tags.map(tag => <Link key={tag} to={`/blogs?topic=${encodeURIComponent(tag)}`} style={{ padding: '.35rem .65rem', background: '#EAE2D8', color: '#51483F' }}>{tag}</Link>)}</div>}
-      <article className="ov-body" style={{ lineHeight: 1.8 }} dangerouslySetInnerHTML={{ __html: blog.html || '<p></p>' }} />
-      <section aria-label="Story actions" style={{ display: 'flex', gap: '.75rem', alignItems: 'center', flexWrap: 'wrap', borderTop: '1px solid #D6CEC4', borderBottom: '1px solid #D6CEC4', padding: '1rem 0', margin: '2rem 0' }}>
-        <button type="button" onClick={toggleLike} disabled={busy !== ''} aria-pressed={Boolean(blog.liked)}>{blog.liked ? '♥ Liked' : '♡ Like'} · {blog.likeCount || 0}</button>
-        <button type="button" onClick={toggleBookmark} disabled={busy !== ''} aria-pressed={Boolean(blog.bookmarked)}>{blog.bookmarked ? 'Saved' : 'Bookmark'}</button>
-        <button type="button" onClick={share}>Share</button>
-        <span>{blog.commentCount || 0} comments</span>
-      </section>
-      {shareMessage && <p role="status">{shareMessage}</p>}
-      {actionError && <p role="alert" style={{ color: '#B91C1C' }}>{actionError}</p>}
-      <section id="comments" style={{ marginTop: '3rem' }}>
-        <h2 className="font-display" style={{ fontSize: '1.8rem' }}>Conversation ({visibleComments.length})</h2>
+    <div className="post-overlay open" onKeyDown={event => event.key === 'Escape' && navigate(returnTo)}>
+      <div className="overlay-side overlay-bg-left" style={{ backgroundImage: blog.coverImageUrl ? `url('${blog.coverImageUrl}')` : undefined }} />
+      <div className="overlay-side overlay-bg-right" style={{ backgroundImage: blog.coverImageUrl ? `url('${blog.coverImageUrl}')` : undefined }} />
+      <article className="overlay-scroll">
+        <button className="overlay-close" type="button" onClick={() => navigate(returnTo)}>
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          Back to posts
+        </button>
+
+        <div className="ov-author-row">
+          {blog.author?.avatarUrl ? <img className="ov-avatar" src={blog.author.avatarUrl} alt="" /> : <span className="ov-avatar" aria-hidden="true" style={{ background: '#EAE2D8', display: 'grid', placeItems: 'center', fontWeight: 700 }}>{(blog.author?.displayName || blog.author?.username || 'B').slice(0, 1).toUpperCase()}</span>}
+          <div>
+            {blog.author?.username ? <Link className="ov-author-name" to={`/u/${encodeURIComponent(blog.author.username)}`} style={{ color: '#000', textDecoration: 'none' }}>{blog.author.displayName || blog.author.username}</Link> : <p className="ov-author-name">BARD writer</p>}
+            <p className="ov-meta">{blog.publishedAt ? new Date(blog.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : blog.status}<span className="ov-dot">·</span>{blog.readingTimeMinutes || 1} min read</p>
+          </div>
+        </div>
+
+        {blog.status !== 'published' && <p style={{ display: 'inline-block', background: '#EAE2D8', padding: '.35rem .65rem', marginBottom: '1rem', fontSize: '.68rem', textTransform: 'uppercase', letterSpacing: '.1em' }}>{blog.status} · only you and permitted administrators can view this</p>}
+        <h1 className="ov-title">{blog.title}</h1>
+        {blog.excerpt && <p style={{ fontSize: '.95rem', color: '#5E5A54', lineHeight: 1.7, marginBottom: '1.5rem' }}>{blog.excerpt}</p>}
+        {blog.coverImageUrl && <div className="ov-hero" style={{ backgroundImage: `url('${blog.coverImageUrl}')` }} />}
+        {!!blog.tags?.length && <div style={{ marginBottom: '1.75rem' }}>{blog.tags.map(tag => <Link key={tag} to={`/blogs?topic=${encodeURIComponent(tag)}`} className="topic-tag" style={{ color: '#000', textDecoration: 'none' }}>{tag}</Link>)}</div>}
+        <article className="ov-body" dangerouslySetInnerHTML={{ __html: blog.html || '<p></p>' }} />
+
+        <section className="ov-stats-row" aria-label="Story actions">
+          <div className="ov-stats"><span>{blog.likeCount || 0} likes</span><span>{blog.commentCount || 0} comments</span></div>
+          <div className="ov-share">
+            <button className="ov-share-btn like-btn" type="button" onClick={toggleLike} disabled={busy !== ''} aria-pressed={Boolean(blog.liked)} aria-label={blog.liked ? 'Unlike story' : 'Like story'}>{blog.liked ? '♥' : '♡'}</button>
+            <button className="ov-share-btn" type="button" onClick={toggleBookmark} disabled={busy !== ''} aria-pressed={Boolean(blog.bookmarked)} aria-label={blog.bookmarked ? 'Remove bookmark' : 'Bookmark story'}>{blog.bookmarked ? 'Saved' : 'Save'}</button>
+            <button className="ov-share-btn" type="button" onClick={share} aria-label="Share story">Share</button>
+          </div>
+        </section>
+        {shareMessage && <p role="status" style={{ marginTop: '.5rem', color: '#6B7280', fontSize: '.8rem' }}>{shareMessage}</p>}
+        {actionError && <p role="alert" style={{ color: '#B91C1C', marginTop: '.5rem' }}>{actionError}</p>}
+
+        <section id="comments" className="ov-comments">
+          <h2 className="ov-section-title" style={{ marginBottom: '.5rem' }}>{visibleComments.length} Comments</h2>
         {canComment ? (
-          <form onSubmit={submitComment} style={{ margin: '1.25rem 0', display: 'grid', gap: '.75rem' }}>
-            {parentId && <p>Replying to a comment <button type="button" onClick={() => setParentId(null)}>Cancel reply</button></p>}
-            <textarea aria-label="Comment" value={body} onChange={event => setBody(event.target.value)} maxLength={2000} required rows={3} placeholder="Add a thoughtful comment…" />
-            <button type="submit" disabled={busy !== '' || !body.trim()}>{busy === 'comment' ? 'Posting…' : 'Post comment'}</button>
+          <form onSubmit={submitComment} className="ov-comment-input-wrap">
+            {parentId && <p style={{ flexBasis: '100%', fontSize: '.78rem', color: '#6B7280' }}>Replying to a comment <button type="button" className="ov-comment-action-btn" onClick={() => setParentId(null)}>Cancel reply</button></p>}
+            <textarea className="ov-comment-input" aria-label="Comment" value={body} onChange={event => setBody(event.target.value)} maxLength={2000} required rows={2} placeholder="Add a thoughtful comment…" />
+            <button className="ov-comment-submit" type="submit" disabled={busy !== '' || !body.trim()}>{busy === 'comment' ? 'Posting…' : 'Post'}</button>
           </form>
         ) : <p>{user ? (user.emailVerified ? 'Comments are closed for this story.' : 'Verify your email before commenting.') : <Link to="/login" state={{ from: location.pathname }}>Log in to comment</Link>}</p>}
-        <div style={{ display: 'grid', gap: '1rem', marginTop: '2rem' }}>
+        <div style={{ marginTop: '1.5rem' }}>
           {visibleComments.map(comment => {
             const isOwner = user && (String(user.id) === String(comment.author?.id) || user.role === 'admin')
-            return <article key={comment.id} style={{ padding: '1rem', background: '#EAE2D8', marginLeft: comment.parentId ? '1.5rem' : 0 }}>
-              <p><strong>{comment.author?.displayName || comment.author?.username || 'Member'}</strong> <time>{new Date(comment.createdAt).toLocaleString()}</time></p>
-              <p style={{ whiteSpace: 'pre-wrap', marginTop: '.5rem' }}>{comment.status === 'deleted' ? 'Comment removed.' : comment.body}</p>
-              {comment.status !== 'deleted' && user?.emailVerified && <button type="button" onClick={() => { setParentId(comment.id); document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' }) }}>Reply</button>}
-              {comment.status !== 'deleted' && isOwner && <button type="button" disabled={busy !== ''} onClick={() => deleteComment(comment.id)}>{busy === `delete:${comment.id}` ? 'Removing…' : 'Delete'}</button>}
+            return <article key={comment.id} className="ov-comment" style={{ marginLeft: comment.parentId ? '1.5rem' : 0 }}>
+              {comment.author?.avatarUrl ? <img className="ov-comment-avatar" src={comment.author.avatarUrl} alt="" /> : <span className="ov-comment-avatar" aria-hidden="true" style={{ background: '#EAE2D8', display: 'grid', placeItems: 'center', fontSize: '.7rem' }}>{(comment.author?.displayName || comment.author?.username || 'B').slice(0, 1).toUpperCase()}</span>}
+              <div className="ov-comment-body">
+                <div className="ov-comment-header"><span className="ov-comment-name">{comment.author?.displayName || comment.author?.username || 'Member'}</span><time className="ov-comment-date">{new Date(comment.createdAt).toLocaleDateString()}</time></div>
+                <p className="ov-comment-text">{comment.status === 'deleted' ? 'Comment removed.' : comment.body}</p>
+                <div className="ov-comment-actions">
+                  {comment.status !== 'deleted' && user?.emailVerified && <button type="button" className="ov-comment-action-btn" onClick={() => { setParentId(comment.id); document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' }) }}>Reply</button>}
+                  {comment.status !== 'deleted' && isOwner && <button type="button" className="ov-comment-action-btn" disabled={busy !== ''} onClick={() => deleteComment(comment.id)}>{busy === `delete:${comment.id}` ? 'Removing…' : 'Delete'}</button>}
+                </div>
+              </div>
             </article>
           })}
           {!visibleComments.length && <p>No comments yet.</p>}
         </div>
       </section>
-      {!!related.length && <section style={{ marginTop: '3rem' }}><h2 className="font-display" style={{ fontSize: '2rem', marginBottom: '1rem' }}>Related stories</h2><div style={{ display: 'grid', gap: '1rem' }}>{related.map(item => <BlogCard key={item.id} post={item} />)}</div></section>}
-    </main>
+      {!!related.length && <section className="ov-recent"><div className="ov-recent-header"><h2 className="ov-section-title">Related Stories</h2><Link to="/blogs" className="ov-see-all">See all →</Link></div><div className="ov-recent-grid">{related.map(item => <Link key={item.id} to={item.status === 'draft' ? `/article/id/${item.id}` : `/article/${encodeURIComponent(item.slug)}`} className="ov-recent-card" style={{ color: 'inherit', textDecoration: 'none' }}>{item.coverImageUrl ? <img className="ov-recent-img" src={item.coverImageUrl} alt="" /> : <div className="ov-recent-img" style={{ background: '#5C7A6E', display: 'grid', placeItems: 'center', color: '#fff' }}>BARD</div>}<p className="ov-recent-title">{item.title}</p><p className="ov-recent-meta">{item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : ''} · {item.readingTimeMinutes || 1} min read</p></Link>)}</div></section>}
+      </article>
+    </div>
   )
 }

@@ -22,11 +22,11 @@ export default function Bookmarks() {
   }, [])
   useEffect(() => { load() }, [load, retry])
 
-  return <main style={{ background: '#F2EBE1', minHeight: '100vh', padding: '2.5rem 1.5rem' }}><div style={{ maxWidth: 1000, margin: '0 auto' }}>
-    <p style={{ textTransform: 'uppercase', letterSpacing: '.15em', color: '#6B7280', fontSize: '.75rem' }}>Private shelf</p><h1 className="font-display" style={{ fontSize: '3rem', marginBottom: '2rem' }}>Bookmarks</h1>
-    {loading && <p role="status">Loading saved stories…</p>}{error && <p role="alert">{error} <button onClick={() => setRetry(n => n + 1)}>Retry</button></p>}
-    {!loading && !error && !items.length && <p>Your saved stories will appear here. <Link to="/blogs">Explore stories</Link></p>}
-    <div style={{ display: 'grid', gap: '1rem' }}>{items.map(item => <BlogCard key={item.id} post={item} onChange={updated => { if (updated.bookmarked === false) setItems(current => current.filter(post => post.id !== updated.id)) }} />)}</div>
-    {cursor && <button type="button" disabled={busy} onClick={() => load(cursor, true)}>{busy ? 'Loading…' : 'Load more'}</button>}
+  return <main style={{ background: '#F2EBE1', minHeight: '100vh', padding: '2rem 1.5rem 5rem' }}><div style={{ maxWidth: 896, margin: '0 auto' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}><div><p style={{ textTransform: 'uppercase', letterSpacing: '.15em', color: '#6B7280', fontSize: '.75rem' }}>Private shelf</p><h1 className="font-display" style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', transform: 'scaleX(1.08)', transformOrigin: 'left' }}>Saved Stories</h1></div><Link to="/blogs" style={{ color: '#000', textDecoration: 'underline', textUnderlineOffset: 4 }}>Explore stories →</Link></div>
+    {loading && <p role="status" style={{ textAlign: 'center', padding: '2rem 0', color: '#6B7280' }}>Loading saved stories…</p>}{error && <p role="alert" style={{ textAlign: 'center', padding: '1rem', color: '#B91C1C' }}>{error} <button type="button" onClick={() => setRetry(n => n + 1)}>Retry</button></p>}
+    {!loading && !error && !items.length && <p style={{ background: '#EAE2D8', padding: '2rem', color: '#6B7280' }}>Your saved stories will appear here. <Link to="/blogs" style={{ color: '#000', fontWeight: 700 }}>Explore stories</Link></p>}
+    {!!items.length && <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: '#EAE2D8', padding: '1.5rem 2rem', borderRadius: 2 }}>{items.map(item => <BlogCard key={item.id} post={item} layout="row" onChange={updated => { if (updated.bookmarked === false) setItems(current => current.filter(post => post.id !== updated.id)) }} />)}</div>}
+    {cursor && <div style={{ textAlign: 'center', marginTop: '1.5rem' }}><button className="topic-clear" type="button" disabled={busy} onClick={() => load(cursor, true)}>{busy ? 'Loading…' : 'Load more'}</button></div>}
   </div></main>
 }

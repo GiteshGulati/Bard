@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { TOPICS } from '../data'
 import { blogs as blogsApi } from '../api'
 import BlogCard from '../components/BlogCard'
 
 export default function Blogs() {
-  const [params, setParams] = useSearchParams()
-  const topic = params.get('topic') || ''
-  const initialQuery = params.get('q') || ''
+  const [searchParams, setSearchParams] = useSearchParams()
+  const topic = searchParams.get('topic') || ''
+  const initialQuery = searchParams.get('q') || ''
   const [query, setQuery] = useState(initialQuery)
   const [posts, setPosts] = useState([])
   const [cursor, setCursor] = useState(null)
@@ -14,8 +15,11 @@ export default function Blogs() {
   const [moreLoading, setMoreLoading] = useState(false)
   const [error, setError] = useState('')
   const [retryKey, setRetryKey] = useState(0)
+  const [searchOpen, setSearchOpen] = useState(Boolean(initialQuery))
+  const searchRef = useRef(null)
+  const topicLabel = TOPICS.find(item => item.id === topic)?.label || topic
 
-  useEffect(() => { setQuery(initialQuery) }, [initialQuery])
+  useEffect(() => { setQuery(initialQuery); setSearchOpen(Boolean(initialQuery)) }, [initialQuery])
 
   useEffect(() => {
     let active = true
@@ -32,12 +36,23 @@ export default function Blogs() {
     return () => { active = false }
   }, [initialQuery, topic, retryKey])
 
+  const toggleSearch = useCallback(() => {
+    if (searchOpen) {
+      setSearchOpen(false)
+      setQuery('')
+      setSearchParams(topic ? { topic } : {})
+      return
+    }
+    setSearchOpen(true)
+    window.setTimeout(() => searchRef.current?.focus(), 50)
+  }, [searchOpen, setSearchParams, topic])
+
   function submitSearch(event) {
     event.preventDefault()
     const next = {}
     if (query.trim()) next.q = query.trim()
     if (topic) next.topic = topic
-    setParams(next)
+    setSearchParams(next)
   }
 
   async function loadMore() {
@@ -55,22 +70,52 @@ export default function Blogs() {
   }
 
   return (
-    <main style={{ background: '#F2EBE1', minHeight: '100vh', padding: '2rem 1.5rem 5rem' }}>
-      <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: '1rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
-          <div><p style={{ textTransform: 'uppercase', letterSpacing: '.15em', color: '#6B7280', fontSize: '.75rem' }}>The public table</p><h1 className="font-display" style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)' }}>Stories</h1></div>
-          <form onSubmit={submitSearch} style={{ display: 'flex', gap: '.5rem' }}>
-            <input aria-label="Search stories" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search stories" />
-            <button type="submit">Search</button>
+    <div style={{ background: '#F2EBE1', minHeight: '100vh' }}>
+      <main style={{ maxWidth: 896, margin: '0 auto', padding: '2rem 1.5rem 5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', gap: '1rem' }}>
+          <h1 className="font-display" style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', transform: 'scaleX(1.08)', transformOrigin: 'left' }}>All Posts</h1>
+          <form onSubmit={submitSearch} style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
+            <input
+              ref={searchRef}
+              type="search"
+              placeholder="Search posts..."
+              aria-label="Search blog posts"
+              value={query}
+              onChange={event => setQuery(event.target.value)}
+              onKeyDown={event => event.key === 'Escape' && toggleSearch()}
+              className={`search-input${searchOpen ? ' open' : ''}`}
+              tabIndex={searchOpen ? 0 : -1}
+            />
+            {searchOpen && <button type="submit" aria-label="Search stories" style={{ background: 'none', border: 0, borderBottom: '1px solid #000', cursor: 'pointer', fontSize: '.7rem', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', padding: '.4rem 0' }}>Search</button>}
+            <button type="button" onClick={toggleSearch} aria-label={searchOpen ? 'Close search' : 'Open search'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280', transition: 'color 0.2s' }}>
+              <svg style={{ width: 20, height: 20 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+              </svg>
+            </button>
           </form>
-        </header>
-        {topic && <p style={{ marginBottom: '1rem' }}>Topic: <strong>{topic}</strong> <button type="button" onClick={() => setParams(initialQuery ? { q: initialQuery } : {})}>Clear</button></p>}
-        {loading && <p role="status">Loading stories…</p>}
-        {!loading && error && <div role="alert" style={{ padding: '1rem', background: '#FEE2E2', marginBottom: '1rem' }}>{error} <button type="button" onClick={() => setRetryKey(key => key + 1)}>Retry</button></div>}
-        {!loading && !error && !posts.length && <p style={{ padding: '3rem', textAlign: 'center' }}>No published stories match this search yet.</p>}
-        <div style={{ display: 'grid', gap: '1.5rem' }}>{posts.map(post => <BlogCard key={post.id} post={post} onChange={updated => setPosts(current => current.map(item => item.id === updated.id ? { ...item, ...updated } : item))} />)}</div>
-        {!loading && cursor && <div style={{ textAlign: 'center', marginTop: '2rem' }}><button type="button" disabled={moreLoading} onClick={loadMore}>{moreLoading ? 'Loading…' : 'Load more'}</button></div>}
-      </div>
-    </main>
+        </div>
+
+        <div style={{ background: '#EAE2D8', padding: '2rem', borderRadius: 2 }}>
+          {topic && (
+            <div className="topic-banner active">
+              <div>
+                <p style={{ fontSize: '.75rem', fontWeight: 600, letterSpacing: '.15em', textTransform: 'uppercase', opacity: .6, marginBottom: 2 }}>Filtered by topic</p>
+                <p className="font-display" style={{ fontSize: '1.125rem', textTransform: 'uppercase', transform: 'scaleX(1.06)', transformOrigin: 'left', display: 'inline-block' }}>{topicLabel}</p>
+              </div>
+              <button className="topic-clear" type="button" onClick={() => setSearchParams(initialQuery ? { q: initialQuery } : {})}>× Clear filter</button>
+            </div>
+          )}
+
+          {loading && <p role="status" style={{ textAlign: 'center', padding: '2rem 0', fontSize: '.9rem', color: '#6B7280' }}>Loading posts…</p>}
+          {!loading && error && <div role="alert" style={{ textAlign: 'center', padding: '2rem 0', color: '#6B7280' }}>{error} <button type="button" onClick={() => setRetryKey(key => key + 1)}>Retry</button></div>}
+          {!loading && !error && posts.length === 0 && <p style={{ textAlign: 'center', padding: '3rem 0', fontSize: '.9rem', color: '#6B7280' }}>No posts match your search.</p>}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {posts.map(post => <BlogCard key={post.id} post={post} onChange={updated => setPosts(current => current.map(item => item.id === updated.id ? { ...item, ...updated } : item))} />)}
+          </div>
+          {!loading && cursor && <div style={{ textAlign: 'center', marginTop: '2rem' }}><button type="button" className="topic-clear" style={{ background: '#000' }} disabled={moreLoading} onClick={loadMore}>{moreLoading ? 'Loading…' : 'Load more posts'}</button></div>}
+        </div>
+      </main>
+    </div>
   )
 }

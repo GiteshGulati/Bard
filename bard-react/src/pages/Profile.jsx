@@ -192,8 +192,8 @@ export default function Profile() {
             No stories yet. <Link to="/post" style={{ textDecoration: 'underline', color: '#000' }}>Write your first one.</Link>
           </p>
         ) : (
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            {myBlogs.map(story => <BlogCard key={story.id} post={story} />)}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: '#EAE2D8', padding: '1.5rem 2rem', borderRadius: 2 }}>
+            {myBlogs.map(story => <BlogCard key={story.id} post={story} layout="row" />)}
           </div>
         )}
         {blogsCursor && !blogsLoading && !blogsError && <div style={{ textAlign: 'center', marginTop: '1.5rem' }}><button type="button" disabled={moreBlogsLoading} onClick={loadMoreBlogs}>{moreBlogsLoading ? 'Loading…' : 'Load more stories'}</button></div>}

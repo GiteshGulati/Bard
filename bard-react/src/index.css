@@ -381,6 +381,26 @@ input:-webkit-autofill:focus {
 /* ─── Following page writer card ──────────────────────── */
 .writer-card { background: var(--bg-card); border: 1px solid var(--border); overflow: hidden; }
 
+/* Responsive refinements for the restored React layouts. */
+@media (max-width: 768px) {
+  .home-contact { grid-template-columns: 1fr !important; gap: 2rem !important; }
+  .overlay-recent-grid, .ov-recent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .story-row { grid-template-columns: 1fr; }
+  .story-row > a { height: 170px; min-height: 170px !important; }
+  .overlay-recent-grid, .ov-recent-grid { grid-template-columns: 1fr; }
+  .overlay-scroll { padding-inline: 1rem; }
+  .ov-stats-row { align-items: flex-start; flex-direction: column; gap: .75rem; }
+  .ov-share { flex-wrap: wrap; }
+}
+
+.admin-moderation-layout { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(300px, 1.4fr); gap: 1.5rem; }
+@media (max-width: 760px) {
+  .admin-moderation-layout { grid-template-columns: 1fr; }
+}
+
 /* ─── Utility classes ─────────────────────────────────── */
 .text-gray { color: var(--gray); }
 .border-b-light { border-bottom: 1px solid rgba(0,0,0,0.1); }

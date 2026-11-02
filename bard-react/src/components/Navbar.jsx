@@ -51,9 +51,6 @@ export default function Navbar() {
           <NavLink to="/following" className={linkCls}>Following</NavLink>
           {user && <NavLink to="/post"    className={linkCls}>Post</NavLink>}
           {user && <NavLink to="/profile" className={linkCls}>Profile</NavLink>}
-          {user && <NavLink to="/bookmarks" className={linkCls}>Bookmarks</NavLink>}
-          {user && <NavLink to="/notifications" className={linkCls}>Inbox</NavLink>}
-          {user?.role === 'admin' && <NavLink to="/admin/reports" className={linkCls}>Moderation</NavLink>}
           <a href="/#about" onClick={handleAboutClick} className="nav-link" style={{ fontSize: '0.875rem' }}>About</a>
         </nav>
 
@@ -78,6 +75,9 @@ export default function Navbar() {
               </button>
             </>
           )}
+          {user && <Link to="/bookmarks" aria-label="Saved stories" title="Saved stories" style={{ color: '#000', display: 'flex', alignItems: 'center', textDecoration: 'none' }}><span className="material-symbols-outlined" style={{ fontSize: 22 }}>bookmark_border</span></Link>}
+          {user && <Link to="/notifications" aria-label="Notifications" title="Notifications" style={{ color: '#000', display: 'flex', alignItems: 'center', textDecoration: 'none' }}><span className="material-symbols-outlined" style={{ fontSize: 22 }}>notifications</span></Link>}
+          {user?.role === 'admin' && <Link to="/admin/reports" aria-label="Moderation" title="Moderation" style={{ color: '#000', display: 'flex', alignItems: 'center', textDecoration: 'none' }}><span className="material-symbols-outlined" style={{ fontSize: 22 }}>shield</span></Link>}
           <button id="menu-btn" aria-label="Open menu" onClick={toggleMenu}
             style={{ background: 'none', border: 'none', cursor: 'pointer' }}
           >
@@ -117,7 +117,7 @@ export default function Navbar() {
             <>
               <Link to="/post"     onClick={() => setMenuOpen(false)}>Post</Link>
               <Link to="/profile"  onClick={() => setMenuOpen(false)}>Profile</Link>
-              <Link to="/bookmarks" onClick={() => setMenuOpen(false)}>Bookmarks</Link>
+              <Link to="/bookmarks" onClick={() => setMenuOpen(false)}>Saved stories</Link>
               <Link to="/notifications" onClick={() => setMenuOpen(false)}>Notifications</Link>
               {user.role === 'admin' && <Link to="/admin/reports" onClick={() => setMenuOpen(false)}>Moderation</Link>}
               <button onClick={() => { handleLogout(); setMenuOpen(false) }} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}>Log Out</button>
