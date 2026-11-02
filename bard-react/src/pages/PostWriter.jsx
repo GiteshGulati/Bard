@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { TOPIC_CHIPS } from '../data'
 import { useAuth } from '../context/AuthContext'
@@ -19,6 +19,7 @@ export default function PostWriter() {
   const [excerpt, setExcerpt] = useState('')
   const [body,    setBody]    = useState('')
   const [activeTopic, setActiveTopic] = useState('gut')
+  const [customTopic, setCustomTopic] = useState('')
   const [coverFile, setCoverFile] = useState(null)
   const [coverSrc, setCoverSrc] = useState(DEFAULT_COVER)
   const [coverUrl, setCoverUrl] = useState('')
@@ -30,7 +31,10 @@ export default function PostWriter() {
 
   const coverFileRef = useRef(null)
 
-  const currentChip = TOPIC_CHIPS.find(c => c.id === activeTopic) || TOPIC_CHIPS[0]
+  const isCustom = activeTopic === '__custom__'
+  const currentChip = isCustom
+    ? { id: '__custom__', label: customTopic.trim() || 'Custom', color: '#6B7280' }
+    : (TOPIC_CHIPS.find(c => c.id === activeTopic) || TOPIC_CHIPS[0])
   const words = wordCount(body)
   const mins  = readMins(words)
 
@@ -42,6 +46,7 @@ export default function PostWriter() {
   async function handlePublish(e) {
     e.preventDefault()
     if (!title.trim() || !body.trim()) { showToast('Add a title and a story first'); return }
+    if (isCustom && !customTopic.trim()) { showToast('Enter a custom topic name'); return }
     if (!user?.emailVerified) {
       showToast('Please verify your email before publishing')
       return
@@ -54,7 +59,8 @@ export default function PostWriter() {
       // Convert plain text body to minimal delta format the server expects
       const delta = { ops: body.split('\n').map(line => ({ insert: line + '\n' })) }
       fd.append('content', JSON.stringify(delta))
-      fd.append('tags', JSON.stringify([currentChip.id]))
+      const topicTag = isCustom ? customTopic.trim().toLowerCase().replace(/\s+/g, '-') : currentChip.id
+      fd.append('tags', JSON.stringify([topicTag]))
       fd.append('status', 'published')
       if (coverFile) {
         fd.append('cover', coverFile)
@@ -95,7 +101,7 @@ export default function PostWriter() {
             <p style={{ fontSize: '0.875rem', opacity: 0.7 }}>Your story is now live on BARD.</p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '0.5rem' }}>
               <Link to="/blogs" style={{ border: '1px solid #fff', color: '#fff', padding: '0.5rem 1.5rem', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>View Blog</Link>
-              <button onClick={() => { setPublished(false); setTitle(''); setExcerpt(''); setBody(''); setCoverSrc(DEFAULT_COVER); setCoverFile(null) }}
+              <button onClick={() => { setPublished(false); setTitle(''); setExcerpt(''); setBody(''); setCoverSrc(DEFAULT_COVER); setCoverFile(null); setActiveTopic('gut'); setCustomTopic('') }}
                 style={{ border: '1px solid rgba(255,255,255,0.4)', color: 'rgba(255,255,255,0.8)', padding: '0.5rem 1.5rem', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'none', cursor: 'pointer' }}>
                 Write Another
               </button>
@@ -125,7 +131,23 @@ export default function PostWriter() {
                       onClick={() => setActiveTopic(chip.id)}
                     >{chip.label}</button>
                   ))}
+                  <button type="button"
+                    className={`topic-chip${activeTopic === '__custom__' ? ' active' : ''}`}
+                    onClick={() => setActiveTopic('__custom__')}
+                  >+ Custom</button>
                 </div>
+                {activeTopic === '__custom__' && (
+                  <input
+                    className="field-input"
+                    type="text"
+                    placeholder="Enter your topic…"
+                    value={customTopic}
+                    onChange={e => setCustomTopic(e.target.value)}
+                    maxLength={40}
+                    style={{ marginTop: '0.75rem' }}
+                    autoFocus
+                  />
+                )}
               </div>
 
               {/* Title */}

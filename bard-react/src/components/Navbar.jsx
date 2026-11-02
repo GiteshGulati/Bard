@@ -1,11 +1,25 @@
-﻿import { useState, useCallback } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { useState, useCallback } from 'react'
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const handleAboutClick = useCallback((e) => {
+    e.preventDefault()
+    if (location.pathname === '/') {
+      document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })
+    } else {
+      navigate('/')
+      // After navigation the home page mounts; scroll once the element appears
+      setTimeout(() => {
+        document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    }
+  }, [location.pathname, navigate])
 
   const handleLogout = useCallback(async () => {
     try {
@@ -37,7 +51,7 @@ export default function Navbar() {
           <NavLink to="/following" className={linkCls}>Following</NavLink>
           {user && <NavLink to="/post"    className={linkCls}>Post</NavLink>}
           {user && <NavLink to="/profile" className={linkCls}>Profile</NavLink>}
-          <a href="#about" className="nav-link" style={{ fontSize: '0.875rem' }}>About</a>
+          <a href="/#about" onClick={handleAboutClick} className="nav-link" style={{ fontSize: '0.875rem' }}>About</a>
         </nav>
 
         {/* Actions */}
@@ -93,6 +107,7 @@ export default function Navbar() {
           <Link to="/"          onClick={() => setMenuOpen(false)}>Home</Link>
           <Link to="/blogs"     onClick={() => setMenuOpen(false)} style={{ fontWeight: 700 }}>Blog</Link>
           <Link to="/following" onClick={() => setMenuOpen(false)}>Following</Link>
+          <a href="/#about" onClick={(e) => { handleAboutClick(e); setMenuOpen(false) }}>About</a>
           {!user ? (
             <>
               <Link to="/login"  onClick={() => setMenuOpen(false)}>Log In</Link>
