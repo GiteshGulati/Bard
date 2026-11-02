@@ -1,12 +1,18 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
+import bcrypt from 'bcrypt';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { startApp, stopApp, agent, csrf, register, PNG } from './helpers.js';
-import { User, Blog, CloudAsset } from '../src/models/index.js';
+import { User, Blog, Comment, CloudAsset, Notification, Report } from '../src/models/index.js';
 import { renderArticle } from '../src/utils/delta.js';
 import { setCloudinaryAdapterForTests } from '../src/config/cloudinary.js';
+import { processPendingNotifications } from '../src/services/notificationService.js';
 
 let app;
+const frontendDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../bard-react/dist');
 
 before(async () => {
   app = await startApp();
@@ -15,6 +21,30 @@ before(async () => {
 after(async () => {
   await stopApp();
 });
+
+if (fs.existsSync(path.join(frontendDist, 'index.html'))) {
+  describe('production frontend serving', () => {
+    it('serves the canonical React build, supports direct SPA routes, and keeps API 404s JSON', async () => {
+      const home = await agent().get('/');
+      assert.equal(home.status, 200);
+      assert.match(home.text, /id="root"/);
+      const assetPath = home.text.match(/src="([^\"]+\.js)"/)?.[1];
+      assert.ok(assetPath);
+      assert.equal((await agent().get(assetPath)).status, 200);
+      const refreshedRoute = await agent().get('/article/a-story-after-refresh');
+      assert.equal(refreshedRoute.status, 200);
+      assert.match(refreshedRoute.text, /id="root"/);
+      const missingApi = await agent().get('/api/v1/no-such-route');
+      assert.equal(missingApi.status, 404);
+      assert.match(missingApi.headers['content-type'], /application\/json/);
+      assert.doesNotMatch(missingApi.text, /id="root"/);
+    });
+  });
+} else {
+  describe('production frontend serving', () => {
+    it.skip('serves the canonical React build after running the root build', () => {});
+  });
+}
 
 describe('auth', () => {
   it('registers, logs in, and returns the current user', async () => {
@@ -29,6 +59,12 @@ describe('auth', () => {
     const me = await ag.get('/api/v1/auth/me');
     assert.equal(me.status, 200);
     assert.equal(me.body.data.user.username, 'ada');
+
+    const loginAgent = agent();
+    const loginToken = await csrf(loginAgent);
+    const login = await loginAgent.post('/api/v1/auth/login').set('x-csrf-token', loginToken).send({ identifier: 'ada@example.com', password: 'Secret123' });
+    assert.equal(login.status, 200);
+    assert.equal((await loginAgent.get('/api/v1/auth/me')).status, 200);
   });
 
   it('rejects invalid credentials without revealing which field failed', async () => {
@@ -40,6 +76,34 @@ describe('auth', () => {
     });
     assert.equal(res.status, 401);
     assert.match(res.body.error.message, /Invalid credentials/);
+  });
+
+  it('rejects valid credentials for an unverified account before creating an authenticated session', async () => {
+    await User.create({
+      username: 'awaitingverification',
+      emailNormalized: 'awaiting@example.com',
+      passwordHash: await bcrypt.hash('Secret123', 4),
+      displayName: 'Awaiting Verification',
+      emailVerified: false,
+    });
+
+    const ag = agent();
+    let token = await csrf(ag);
+    const wrongPassword = await ag.post('/api/v1/auth/login').set('x-csrf-token', token).send({ identifier: 'awaiting@example.com', password: 'WrongPass1' });
+    assert.equal(wrongPassword.status, 401);
+    assert.equal(wrongPassword.body.error.code, 'UNAUTHORIZED');
+    assert.match(wrongPassword.body.error.message, /Invalid credentials/);
+
+    token = await csrf(ag);
+    const login = await ag.post('/api/v1/auth/login').set('x-csrf-token', token).send({ identifier: 'awaiting@example.com', password: 'Secret123' });
+    assert.equal(login.status, 403);
+    assert.equal(login.body.error.code, 'EMAIL_NOT_VERIFIED');
+    assert.match(login.body.error.message, /Verify your email/);
+    assert.equal((await ag.get('/api/v1/auth/me')).status, 401);
+
+    const stillThere = await User.findOne({ username: 'awaitingverification' });
+    assert.ok(stillThere);
+    assert.equal(stillThere.emailVerified, false);
   });
 
   it('invalidates the session on logout', async () => {
@@ -62,6 +126,61 @@ describe('auth', () => {
 });
 
 describe('articles', () => {
+  it('serves published story details by slug and keeps drafts owner/admin-only by id', async () => {
+    const owner = agent();
+    await register(owner, { username: 'storyowner', email: 'storyowner@example.com' });
+    let token = await csrf(owner);
+    const draft = await owner.post('/api/v1/blogs').set('x-csrf-token', token).send({
+      title: 'Private manuscript',
+      content: { ops: [{ insert: 'A private paragraph.\n' }] },
+      status: 'draft',
+    });
+    assert.equal(draft.status, 201);
+    const draftId = draft.body.data.blog.id;
+    assert.equal((await owner.get(`/api/v1/blogs/id/${draftId}`)).status, 200);
+    assert.equal((await agent().get(`/api/v1/blogs/${draft.body.data.blog.slug}`)).status, 404);
+
+    const outsider = agent();
+    await register(outsider, { username: 'storyoutsider', email: 'storyoutsider@example.com' });
+    assert.equal((await outsider.get(`/api/v1/blogs/id/${draftId}`)).status, 403);
+    assert.equal((await outsider.get('/api/v1/blogs/id/not-an-object-id')).status, 422);
+
+    token = await csrf(owner);
+    const published = await owner.patch(`/api/v1/blogs/${draftId}`).set('x-csrf-token', token).send({ status: 'published' });
+    assert.equal(published.status, 200);
+    const publicStory = await agent().get(`/api/v1/blogs/${published.body.data.blog.slug}`);
+    assert.equal(publicStory.status, 200);
+    assert.match(publicStory.body.data.blog.html, /A private paragraph/);
+    const profilePosts = await owner.get('/api/v1/users/storyowner/blogs?limit=10');
+    assert.ok(profilePosts.body.data.items.some(item => item.id === draftId));
+  });
+
+  it('paginates by published time and stable id tie-breaker rather than ObjectId order', async () => {
+    const author = agent();
+    const { user } = await register(author, { username: 'cursorwriter', email: 'cursorwriter@example.com' });
+    const ids = [1, 4, 2, 3].map(value => new mongoose.Types.ObjectId(`00000000000000000000000${value}`));
+    const times = [
+      new Date('2026-01-04T00:00:00.000Z'),
+      new Date('2026-01-03T00:00:00.000Z'),
+      new Date('2026-01-02T00:00:00.000Z'),
+      new Date('2026-01-01T00:00:00.000Z'),
+    ];
+    for (let index = 0; index < ids.length; index += 1) {
+      await Blog.create({
+        _id: ids[index], author: user.id, title: `Cursor needle ${index}`, slug: `cursor-needle-${index}`,
+        contentDelta: { ops: [{ insert: `Story ${index}.\n` }] }, htmlSanitized: `<p>Story ${index}.</p>`, plainText: `Story ${index}.`,
+        tags: ['cursor'], status: 'published', visibility: 'public', publishedAt: times[index],
+      });
+    }
+    const first = await agent().get('/api/v1/blogs?limit=2&tag=cursor');
+    assert.equal(first.status, 200);
+    const second = await agent().get(`/api/v1/blogs?limit=2&tag=cursor&cursor=${encodeURIComponent(first.body.data.nextCursor)}`);
+    assert.equal(second.status, 200);
+    const allIds = [...first.body.data.items, ...second.body.data.items].map(item => item.id);
+    assert.deepEqual(allIds, ids.map(String));
+    assert.equal(new Set(allIds).size, 4);
+  });
+
   it('creates, publishes, edits, and deletes an owned article', async () => {
     const ag = agent();
     await register(ag, { username: 'writer', email: 'writer@example.com' });
@@ -148,6 +267,7 @@ describe('social', () => {
     assert.equal(like1.status, 200);
     assert.equal(like2.status, 200);
     assert.equal(like2.body.data.likeCount, 1);
+    assert.equal(await Notification.countDocuments({ recipient: authorId, type: 'like' }), 1);
 
     token = await csrf(fan);
     await fan.put(`/api/v1/me/bookmarks/${blogId}`).set('x-csrf-token', token);
@@ -202,6 +322,34 @@ describe('social', () => {
       body: 'A revised note.',
     });
     assert.equal(edited.status, 200);
+  });
+
+  it('keeps comment success when notification writes fail, then retries idempotently', async () => {
+    const author = agent();
+    await register(author, { username: 'outboxauthor', email: 'outboxauthor@example.com' });
+    const createdBlog = await author.post('/api/v1/blogs').set('x-csrf-token', await csrf(author)).send({
+      title: 'Outbox article', content: { ops: [{ insert: 'Outbox body.\n' }] }, status: 'published',
+    });
+    const reader = agent();
+    await register(reader, { username: 'outboxreader', email: 'outboxreader@example.com' });
+
+    const originalUpdateOne = Notification.updateOne;
+    Notification.updateOne = async () => { const error = new Error('private database diagnostic'); error.code = 'EWRITE'; throw error; };
+    let response;
+    try {
+      response = await reader.post(`/api/v1/blogs/${createdBlog.body.data.blog.id}/comments`)
+        .set('x-csrf-token', await csrf(reader)).send({ body: 'Saved even when the inbox is unavailable.' });
+    } finally {
+      Notification.updateOne = originalUpdateOne;
+    }
+    assert.equal(response.status, 201);
+    const commentId = response.body.data.comment.id;
+    assert.ok(await Comment.findById(commentId));
+    assert.equal(await Notification.countDocuments({ type: 'comment', blog: createdBlog.body.data.blog.id }), 0);
+
+    await processPendingNotifications({ retryDelayMs: 0 });
+    await processPendingNotifications({ retryDelayMs: 0 });
+    assert.equal(await Notification.countDocuments({ type: 'comment', blog: createdBlog.body.data.blog.id }), 1);
   });
 
   it('keeps bookmarks private and builds a follow feed', async () => {
@@ -294,6 +442,61 @@ describe('end-to-end journey', () => {
 });
 
 describe('security', () => {
+  it('bounds multipart field counts on authenticated uploads', async () => {
+    const owner = agent();
+    await register(owner, { username: 'multipartowner', email: 'multipartowner@example.com' });
+    const request = owner.post('/api/v1/blogs').set('x-csrf-token', await csrf(owner)).attach('cover', PNG, 'cover.png');
+    for (let index = 0; index < 11; index += 1) request.field(`extra${index}`, 'field');
+    const response = await request;
+    assert.equal(response.status, 400);
+    assert.equal(response.body.error.code, 'UPLOAD');
+    assert.match(response.body.error.message, /form fields|multipart/i);
+  });
+
+  it('suspends and restores reported users with an auditable moderator history', async () => {
+    const reporter = agent();
+    await register(reporter, { username: 'reporterperson', email: 'reporterperson@example.com' });
+    const target = agent();
+    const { user: targetUser } = await register(target, { username: 'reportedperson', email: 'reportedperson@example.com' });
+    const admin = agent();
+    await register(admin, { username: 'moderatorperson', email: 'moderatorperson@example.com' });
+    await User.updateOne({ username: 'moderatorperson' }, { role: 'admin' });
+
+    const reportResponse = await reporter.post('/api/v1/reports').set('x-csrf-token', await csrf(reporter)).send({
+      targetType: 'user', targetId: targetUser.id, reason: 'other', explanation: 'Review this profile.',
+    });
+    assert.equal(reportResponse.status, 201);
+    const reportId = reportResponse.body.data.report._id;
+
+    let response = await admin.patch(`/api/v1/admin/reports/${reportId}`).set('x-csrf-token', await csrf(admin)).send({ status: 'resolved' });
+    assert.equal(response.status, 400);
+    assert.equal((await Report.findById(reportId)).status, 'open');
+
+    response = await admin.patch(`/api/v1/admin/reports/${reportId}`).set('x-csrf-token', await csrf(admin)).send({ status: 'resolved', userAction: 'suspend', resolutionNote: 'Confirmed abuse.' });
+    assert.equal(response.status, 200);
+    const suspended = await User.findById(targetUser.id);
+    assert.equal(suspended.moderationStatus, 'suspended');
+    assert.equal(suspended.moderationHistory[0].action, 'suspend');
+    assert.equal((await target.get('/api/v1/auth/me')).status, 401);
+    const suspendedLogin = agent();
+    const suspendedTokenResponse = await suspendedLogin.get('/api/v1/csrf-token');
+    assert.equal(suspendedTokenResponse.status, 200, JSON.stringify(suspendedTokenResponse.body));
+    response = await suspendedLogin.post('/api/v1/auth/login').set('x-csrf-token', suspendedTokenResponse.body.data.csrfToken).send({ identifier: targetUser.email, password: 'Secret123' });
+    assert.equal(response.status, 403);
+    assert.equal(response.body.error.code, 'ACCOUNT_SUSPENDED');
+
+    response = await admin.patch(`/api/v1/admin/reports/${reportId}`).set('x-csrf-token', await csrf(admin)).send({ status: 'resolved', userAction: 'restore', resolutionNote: 'Appeal accepted.' });
+    assert.equal(response.status, 200);
+    const restored = await User.findById(targetUser.id);
+    assert.equal(restored.moderationStatus, 'active');
+    assert.deepEqual(restored.moderationHistory.map(item => item.action), ['suspend', 'restore']);
+    const restoredLogin = agent();
+    const restoredTokenResponse = await restoredLogin.get('/api/v1/csrf-token');
+    assert.equal(restoredTokenResponse.status, 200, JSON.stringify(restoredTokenResponse.body));
+    response = await restoredLogin.post('/api/v1/auth/login').set('x-csrf-token', restoredTokenResponse.body.data.csrfToken).send({ identifier: targetUser.email, password: 'Secret123' });
+    assert.equal(response.status, 200);
+  });
+
   it('sanitizes rich-text XSS', () => {
     const rendered = renderArticle({
       ops: [{ insert: '<script>alert(1)</script><img src=x onerror=alert(1)>\n' }],
@@ -359,6 +562,26 @@ describe('security', () => {
     } finally {
       setCloudinaryAdapterForTests(null);
     }
+  });
+
+  it('requires authentication and a valid CSRF token for profile picture uploads', async () => {
+    const owner = agent();
+    await register(owner, { username: 'csrfavatar', email: 'csrfavatar@example.com' });
+
+    const missingToken = await owner.patch('/api/v1/users/me').attach('avatar', PNG, 'avatar.png');
+    assert.equal(missingToken.status, 403);
+    assert.equal(missingToken.body.error.code, 'CSRF');
+
+    const invalidToken = await owner.patch('/api/v1/users/me')
+      .set('x-csrf-token', 'invalid-csrf-token')
+      .attach('avatar', PNG, 'avatar.png');
+    assert.equal(invalidToken.status, 403);
+    assert.equal(invalidToken.body.error.code, 'CSRF');
+
+    const guest = agent();
+    const unauthenticated = await guest.patch('/api/v1/users/me').attach('avatar', PNG, 'avatar.png');
+    assert.equal(unauthenticated.status, 401);
+    assert.equal(unauthenticated.body.error.code, 'UNAUTHORIZED');
   });
 
   it('persists Cloudinary URLs and asset ids for avatars, covers, and inline images', async () => {
@@ -499,9 +722,11 @@ describe('security', () => {
   it('rate-limits repeated login attempts', async () => {
     const ag = agent();
     let last;
+    const testIp = '203.0.113.77';
     for (let i = 0; i < 55; i += 1) {
-      const token = await csrf(ag);
-      last = await ag.post('/api/v1/auth/login').set('x-csrf-token', token).send({
+      const tokenResponse = await ag.get('/api/v1/csrf-token').set('x-forwarded-for', testIp);
+      const token = tokenResponse.body.data.csrfToken;
+      last = await ag.post('/api/v1/auth/login').set('x-forwarded-for', testIp).set('x-csrf-token', token).send({
         identifier: 'nobody@example.com',
         password: 'WrongPass1',
       });

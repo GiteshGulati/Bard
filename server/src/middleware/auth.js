@@ -14,6 +14,10 @@ export const loadUser = asyncHandler(async (req, _res, next) => {
     req.session.userId = undefined;
     return next();
   }
+  if (user.moderationStatus === 'suspended') {
+    req.session.destroy(() => {});
+    return next();
+  }
   const currentVersion = user.sessionVersion || 1;
   if (req.session.sessionVersion === undefined && currentVersion === 1) req.session.sessionVersion = 1;
   if (req.session.sessionVersion !== currentVersion) {

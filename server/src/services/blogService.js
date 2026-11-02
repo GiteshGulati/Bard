@@ -5,9 +5,9 @@ import { parse } from '../validators/common.js';
 import { blogCreateSchema, blogUpdateSchema } from '../validators/blog.js';
 import { renderArticle } from '../utils/delta.js';
 import { publicBlog } from '../utils/dto.js';
-import { nextCursorFrom } from '../utils/pagination.js';
+import { applyCursor, nextCursorFrom } from '../utils/pagination.js';
 import { slugify, withSuffix } from '../utils/slug.js';
-import { notify } from './notificationService.js';
+import { processPendingNotificationsSafely } from './notificationService.js';
 import { cleanupAssetIfUnreferenced } from './uploadService.js';
 import { isCloudinaryImageUrl } from '../config/cloudinary.js';
 
@@ -175,31 +175,31 @@ export async function getOwned(blogId, viewer) {
 export async function listPublicBlogs({ cursor, limit, tag }) {
   const query = { status: 'published', visibility: 'public' };
   if (tag) query.tags = tag.toLowerCase();
-  if (cursor) query._id = { $lt: cursor };
+  applyCursor(query, cursor, 'publishedAt');
   const rows = await Blog.find(query).sort({ publishedAt: -1, _id: -1 }).limit(limit)
     .populate('author', 'username displayName avatarPath bio websiteUrl role createdAt');
   const items = await annotate(rows, null);
-  return { items, nextCursor: nextCursorFrom(rows, limit) };
+  return { items, nextCursor: nextCursorFrom(rows, limit, 'publishedAt') };
 }
 
 export async function listDashboard(userId, { cursor, limit, status }) {
   const query = { author: userId };
   if (status) query.status = status;
-  if (cursor) query._id = { $lt: cursor };
+  applyCursor(query, cursor, 'updatedAt');
   const rows = await Blog.find(query).sort({ updatedAt: -1, _id: -1 }).limit(limit)
     .populate('author', 'username displayName avatarPath bio websiteUrl role createdAt');
-  return { items: rows.map((row) => publicBlog(row, { delta: undefined })), nextCursor: nextCursorFrom(rows, limit) };
+  return { items: rows.map((row) => publicBlog(row, { delta: undefined })), nextCursor: nextCursorFrom(rows, limit, 'updatedAt') };
 }
 
 export async function followingFeed(userId, { cursor, limit }) {
   const follows = await Follow.find({ follower: userId }).select('followed');
   const ids = follows.map((f) => f.followed);
   const query = { author: { $in: ids }, status: 'published', visibility: 'public' };
-  if (cursor) query._id = { $lt: cursor };
+  applyCursor(query, cursor, 'publishedAt');
   const rows = await Blog.find(query).sort({ publishedAt: -1, _id: -1 }).limit(limit)
     .populate('author', 'username displayName avatarPath bio websiteUrl role createdAt');
   const items = await annotate(rows, userId);
-  return { items, nextCursor: nextCursorFrom(rows, limit) };
+  return { items, nextCursor: nextCursorFrom(rows, limit, 'publishedAt') };
 }
 
 export async function searchBlogs({ q, tag, cursor, limit }) {
@@ -208,13 +208,12 @@ export async function searchBlogs({ q, tag, cursor, limit }) {
   if (q && q.trim()) {
     query.$text = { $search: q.trim() };
   }
-  if (cursor) query._id = { $lt: cursor };
+  applyCursor(query, cursor, 'publishedAt');
   const find = Blog.find(query);
-  if (q && q.trim()) find.select({ score: { $meta: 'textScore' } }).sort({ score: { $meta: 'textScore' }, _id: -1 });
-  else find.sort({ publishedAt: -1, _id: -1 });
+  find.sort({ publishedAt: -1, _id: -1 });
   const rows = await find.limit(limit).populate('author', 'username displayName avatarPath bio websiteUrl role createdAt');
   const items = await annotate(rows, null);
-  return { items, nextCursor: nextCursorFrom(rows, limit) };
+  return { items, nextCursor: nextCursorFrom(rows, limit, 'publishedAt') };
 }
 
 export async function relatedBlogs(blogId, limit = 4) {
@@ -236,12 +235,14 @@ export async function relatedBlogs(blogId, limit = 4) {
 export async function likeBlog(userId, blogId) {
   const blog = await Blog.findById(blogId);
   if (!blog || blog.status !== 'published') throw notFound('Article not found');
+  let created = false;
   try {
-    await Like.create({ user: userId, blog: blogId });
+    await Like.create({ user: userId, blog: blogId, notificationPendingAt: new Date() });
+    created = true;
   } catch (err) {
     if (err.code !== 11000) throw err;
   }
-  await notify({ recipient: blog.author, actor: userId, type: 'like', blog: blogId });
+  if (created) await processPendingNotificationsSafely();
   return Like.countDocuments({ blog: blogId });
 }
 
@@ -266,14 +267,14 @@ export async function unbookmarkBlog(userId, blogId) {
 
 export async function listBookmarks(userId, { cursor, limit }) {
   const query = { user: userId };
-  if (cursor) query._id = { $lt: cursor };
+  applyCursor(query, cursor, '_id');
   const rows = await Bookmark.find(query).sort({ _id: -1 }).limit(limit).populate({
     path: 'blog',
     populate: { path: 'author', select: 'username displayName avatarPath bio websiteUrl role createdAt' },
   });
   const blogs = rows.map((r) => r.blog).filter((b) => b && b.status === 'published');
   const items = await annotate(blogs, userId);
-  return { items, nextCursor: nextCursorFrom(rows, limit) };
+  return { items, nextCursor: nextCursorFrom(rows, limit, '_id') };
 }
 
 export { canSee };

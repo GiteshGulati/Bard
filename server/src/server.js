@@ -1,10 +1,12 @@
 import { createApp } from './app.js';
 import { connectDb, disconnectDb } from './config/db.js';
 import { env } from './config/env.js';
+import { processPendingNotificationsSafely } from './services/notificationService.js';
 
 const app = await createApp();
 try {
   await connectDb();
+  await processPendingNotificationsSafely();
 } catch (error) {
   console.error(error.message);
   if (env.NODE_ENV === 'development' && error.diagnostic) {
@@ -15,6 +17,11 @@ try {
 }
 
 if (process.exitCode) process.exit(process.exitCode);
+
+const notificationRetryTimer = setInterval(() => {
+  processPendingNotificationsSafely();
+}, 30_000);
+notificationRetryTimer.unref();
 
 const server = app.listen(env.PORT, () => {
   console.log(`Bard API listening on http://127.0.0.1:${env.PORT}`);

@@ -65,7 +65,12 @@ export default function PostWriter() {
       if (coverFile) {
         fd.append('cover', coverFile)
       }
-      await blogsApi.create(fd)
+      const response = await blogsApi.create(fd)
+      const created = response?.data?.blog
+      if (created?.slug) {
+        navigate(`/article/${encodeURIComponent(created.slug)}`, { state: { from: '/profile' } })
+        return
+      }
       setPublished(true)
       showToast('Published!')
       setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100)
@@ -110,8 +115,8 @@ export default function PostWriter() {
         )}
 
         {/* Two-column layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
-          <style>{`@media (max-width: 768px) { .post-grid { grid-template-columns: 1fr !important; } }`}</style>
+        <div className="post-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+          <style>{`@media (max-width: 768px) { .post-layout { grid-template-columns: 1fr !important; } }`}</style>
 
           {/* Left: Form */}
           <div className="post-grid" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>

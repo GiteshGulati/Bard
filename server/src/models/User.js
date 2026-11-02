@@ -17,10 +17,18 @@ const userSchema = new mongoose.Schema(
     avatarAsset: { type: mongoose.Schema.Types.ObjectId, ref: 'CloudAsset', default: null },
     websiteUrl: { type: String, default: '', maxlength: 200 },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    moderationStatus: { type: String, enum: ['active', 'suspended'], default: 'active' },
+    moderationHistory: [{
+      action: { type: String, enum: ['suspend', 'restore'], required: true },
+      moderator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+      reason: { type: String, default: '', maxlength: 1000 },
+      createdAt: { type: Date, default: Date.now },
+    }],
   },
   { timestamps: true },
 );
 
 userSchema.index({ createdAt: -1 });
+userSchema.index({ moderationStatus: 1 });
 
 export const User = mongoose.model('User', userSchema);

@@ -1,11 +1,12 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { auth as authApi, clearCsrf } from '../api'
 
-const AuthContext = createContext(null)
+export const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(undefined) // undefined = loading, null = guest
   const [loading, setLoading] = useState(true)
+  const [registrationCompleted, setRegistrationCompleted] = useState(false)
 
   // Hydrate from server on mount
   useEffect(() => {
@@ -17,21 +18,25 @@ export function AuthProvider({ children }) {
 
   // identifier can be email or username
   const login = useCallback(async (identifier, password) => {
-    const res = await authApi.login({ identifier, password })
-    setUser(res?.data?.user ?? null)
-    return res
+    const response = await authApi.login({ identifier, password })
+    setUser(response?.data?.user ?? null)
+    setRegistrationCompleted(false)
+    return response
   }, [])
 
   const register = useCallback(async (displayName, username, email, password) => {
-    const res = await authApi.register({ displayName, username, email, password })
-    setUser(res?.data?.user ?? null)
-    return res
+    const response = await authApi.register({ displayName, username, email, password })
+    setUser(response?.data?.user ?? null)
+    setRegistrationCompleted(true)
+    // Keep status fields such as verificationEmailSent available to the caller.
+    return response
   }, [])
 
   const logout = useCallback(async () => {
     await authApi.logout()
     clearCsrf()
     setUser(null)
+    setRegistrationCompleted(false)
   }, [])
 
   const refreshUser = useCallback(async () => {
@@ -43,8 +48,10 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  const clearRegistrationCompleted = useCallback(() => setRegistrationCompleted(false), [])
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser, setUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser, setUser, registrationCompleted, clearRegistrationCompleted }}>
       {children}
     </AuthContext.Provider>
   )

@@ -9,6 +9,8 @@ export class AppError extends Error {
 
 export const badRequest = (message, details) => new AppError(400, message, 'BAD_REQUEST', details);
 export const unauthorized = (message = 'Authentication required') => new AppError(401, message, 'UNAUTHORIZED');
+export const emailNotVerified = () => new AppError(403, 'Verify your email before signing in. You can request a new verification email.', 'EMAIL_NOT_VERIFIED');
+export const accountSuspended = () => new AppError(403, 'This account is currently suspended.', 'ACCOUNT_SUSPENDED');
 export const forbidden = (message = 'You cannot perform this action') => new AppError(403, message, 'FORBIDDEN');
 export const notFound = (message = 'Not found') => new AppError(404, message, 'NOT_FOUND');
 export const conflict = (message) => new AppError(409, message, 'CONFLICT');

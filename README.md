@@ -1,6 +1,6 @@
 # Bard
 
-Bard is an editorial blog sharing platform: **a place for words, not clout.** It uses a semantic HTML/CSS/vanilla JavaScript client, Vite, and an Express/Mongoose API with MongoDB backed sessions.
+Bard is an editorial blog sharing platform: **a place for words, not clout.** The canonical frontend is the React/Vite application in `bard-react/`; the Express/Mongoose API serves its production build and stores sessions in MongoDB.
 
 ## Prerequisites
 
@@ -17,28 +17,28 @@ Bard is an editorial blog sharing platform: **a place for words, not clout.** It
 
 2. Copy `.env.example` to `server/.env`, then set `MONGODB_URI`, `SESSION_SECRET` (at least 16 characters), and `CSRF_SECRET` (at least 16 characters). Configure Gmail SMTP with a Google app password and set `APP_BASE_URL` to the client origin used in verification and reset links. Use unique random values for secrets. The defaults target local development.
 
-3. Start MongoDB, then run both client and API:
+3. Start MongoDB, then run the React client and API:
 
    ```sh
    npm run dev
    ```
 
-   Vite serves the client at http://localhost:5173 and proxies `/api` and `/uploads` to Express at http://localhost:3000.
+   Vite serves the React app at http://localhost:5173 and proxies `/api` and `/uploads` to Express at http://localhost:3000. The older `client/` app remains a standalone legacy frontend and is not started or built by the root scripts.
 
-Production build and server:
+Production build and server (run from the repository root):
 
 ```sh
 npm run build
 npm start
 ```
 
-The Express server serves `client/dist` when it exists. Set `NODE_ENV=production`, `CLIENT_ORIGIN` to the deployed client origin, use HTTPS, and configure a durable MongoDB deployment plus all three Cloudinary variables. MongoDB application data and sessions use the `bard` database. New image uploads always go to Cloudinary; `/uploads` remains available only for existing local images.
+The root build creates `bard-react/dist`; Express serves that exact directory, including direct React routes and asset requests. Unknown `/api/v1` paths remain JSON API 404 responses. Set `NODE_ENV=production`, use HTTPS, configure `CLIENT_ORIGIN` to the browser origin when the frontend and API are deployed separately (the Express-served frontend shares the API origin), and configure a durable MongoDB deployment plus all three Cloudinary variables. MongoDB application data and sessions use the `bard` database. New image uploads always go to Cloudinary; `/uploads` remains available only for existing local images.
 
 ## Features
 
 - Registration/login/logout, persistent HttpOnly sessions, CSRF protection, profile and password settings.
 - Email verification after registration, generic forgot-password responses, one-time expiring password-reset links, and optional post-verification welcome email. Set `EMAIL_SEND_WELCOME=true` to enable the welcome message.
-- Quill rich-text authoring, draft autosave, preview, publish/edit/delete, cover uploads, and inline image uploads.
+- React story authoring with a live preview, cover uploads, and tagged publishing.
 - Public home/explore/search/tag and author pages, article reading, related articles, and pagination.
 - Likes, threaded comments, follows, followed-author feed, private bookmarks, and in-app notifications.
 - Reporting and protected admin moderation queue. Admin role must be granted by a trusted database operator; no request field can grant it.
@@ -57,14 +57,13 @@ All API routes use `/api/v1`. `GET /health` checks the API process; auth, users,
 
 ## Project layout
 
-- `client/` — Vite application, page modules, API client, styles, and Quill editor.
+- `bard-react/` — canonical React/Vite application used by root development and production scripts.
+- `client/` — legacy standalone vanilla JavaScript/Vite application; not served by Express.
 - `server/src/` — Express app, configuration, Mongoose models, controllers, services, validation, and middleware.
 - `server/tests/` — API integration and security tests using `mongodb-memory-server`.
 - `uploads/` — local development upload storage (ignored by Git).
 
 More detail: [architecture](docs/architecture.md), [API routes](docs/api.md), and [testing](docs/testing.md).
-
-## Verification status
 
 ## Email account policy
 

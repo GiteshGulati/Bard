@@ -4,7 +4,7 @@ import { parse, objectIdSchema } from '../validators/common.js';
 import { commentSchema } from '../validators/blog.js';
 import { sanitizeComment } from '../utils/delta.js';
 import { publicComment } from '../utils/dto.js';
-import { notify } from './notificationService.js';
+import { processPendingNotificationsSafely } from './notificationService.js';
 
 export async function listComments(blogId, viewer) {
   const blog = await Blog.findById(blogId);
@@ -39,15 +39,10 @@ export async function addComment(userId, blogId, payload) {
     blog: blogId,
     parent: parent?._id || null,
     body,
+    notificationPendingAt: new Date(),
   });
   await comment.populate('author', 'username displayName avatarPath bio websiteUrl role createdAt');
-  await notify({
-    recipient: parent ? parent.author : blog.author,
-    actor: userId,
-    type: parent ? 'reply' : 'comment',
-    blog: blogId,
-    comment: comment._id,
-  });
+  await processPendingNotificationsSafely();
   return publicComment(comment);
 }
 

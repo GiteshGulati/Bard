@@ -1,7 +1,8 @@
 ﻿import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { users as usersApi } from '../api'
+import { auth as authApi, users as usersApi } from '../api'
+import BlogCard from '../components/BlogCard'
 
 const DEFAULT_AVATAR = 'https://i.pravatar.cc/160?img=68'
 
@@ -10,6 +11,10 @@ export default function Profile() {
 
   const [myBlogs, setMyBlogs] = useState([])
   const [blogsLoading, setBlogsLoading] = useState(true)
+  const [moreBlogsLoading, setMoreBlogsLoading] = useState(false)
+  const [blogsError, setBlogsError] = useState('')
+  const [blogsCursor, setBlogsCursor] = useState(null)
+  const [loadVersion, setLoadVersion] = useState(0)
   const [followers, setFollowers] = useState(0)
   const [following, setFollowing] = useState(0)
 
@@ -23,29 +28,44 @@ export default function Profile() {
   const [saveError, setSaveError] = useState('')
   const [toast, setToast] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
+  const [resendError, setResendError] = useState('')
 
   const avatarFileRef = useRef(null)
 
   // Load my blogs and social counts
   useEffect(() => {
     if (!user?.username) return
-    setBlogsLoading(true)
-    usersApi.myBlogs(user.username, { limit: 20 })
+    let active = true
+    setBlogsLoading(true); setBlogsError(''); setBlogsCursor(null); setMyBlogs([])
+    usersApi.myBlogs(user.username, { limit: 12 })
       .then(res => {
-        const items = res?.data?.items || []
-        setMyBlogs(items)
+        if (!active) return
+        setMyBlogs(res?.data?.items || [])
+        setBlogsCursor(res?.data?.nextCursor || null)
       })
-      .catch(() => setMyBlogs([]))
-      .finally(() => setBlogsLoading(false))
+      .catch(err => { if (active) setBlogsError(err.message || 'Could not load your stories.') })
+      .finally(() => { if (active) setBlogsLoading(false) })
 
-    usersApi.followers(user.username)
-      .then(res => setFollowers(res?.data?.total ?? res?.data?.items?.length ?? 0))
-      .catch(() => {})
+    usersApi.get(user.username).then(res => {
+      if (!active) return
+      const profile = res?.data?.user || res?.data || {}
+      setFollowers(profile.followerCount || 0); setFollowing(profile.followingCount || 0)
+    }).catch(() => { if (active) { setFollowers(0); setFollowing(0) } })
+    return () => { active = false }
+  }, [user?.username, loadVersion])
 
-    usersApi.following(user.username)
-      .then(res => setFollowing(res?.data?.total ?? res?.data?.items?.length ?? 0))
-      .catch(() => {})
-  }, [user?.username])
+  async function loadMoreBlogs() {
+    if (!blogsCursor || moreBlogsLoading) return
+    setMoreBlogsLoading(true); setBlogsError('')
+    try {
+      const result = await usersApi.myBlogs(user.username, { limit: 12, cursor: blogsCursor })
+      setMyBlogs(current => [...current, ...(result?.data?.items || [])])
+      setBlogsCursor(result?.data?.nextCursor || null)
+    } catch (error) { setBlogsError(error.message || 'Could not load more stories.') }
+    finally { setMoreBlogsLoading(false) }
+  }
 
   function showToast(msg) {
     setToast(msg); setToastVisible(true)
@@ -63,6 +83,15 @@ export default function Profile() {
   }
 
   function closeModal() { setModalOpen(false) }
+
+  async function resendVerification() {
+    setResendLoading(true); setResendMessage(''); setResendError('')
+    try {
+      const result = await authApi.resendVerification({ email: user.email })
+      setResendMessage(result?.data?.message || 'If this account needs verification, instructions will be sent shortly.')
+    } catch (error) { setResendError(error.message || 'Could not request a verification email.') }
+    finally { setResendLoading(false) }
+  }
 
   function handleAvatarFile(file) {
     if (!file || !file.type.startsWith('image/')) return
@@ -104,7 +133,9 @@ export default function Profile() {
         {user && !user.emailVerified && (
           <div style={{ background: '#FEF3C7', border: '1px solid #F59E0B', padding: '1rem 1.5rem', marginBottom: '1.5rem', fontSize: '0.875rem', color: '#92400E', borderRadius: 2 }}>
             ⚠ Your email is not verified. Some features like posting are restricted.
-            Check your inbox, or <button onClick={() => {}} style={{ background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', color: '#92400E', fontSize: 'inherit', padding: 0 }}>resend verification email</button>.
+            Check your inbox, or <button type="button" disabled={resendLoading} onClick={resendVerification} style={{ background: 'none', border: 'none', cursor: resendLoading ? 'wait' : 'pointer', textDecoration: 'underline', color: '#92400E', fontSize: 'inherit', padding: 0 }}>{resendLoading ? 'requesting…' : 'resend verification email'}</button>.
+            {resendMessage && <p role="status" style={{ marginTop: '.5rem' }}>{resendMessage}</p>}
+            {resendError && <p role="alert" style={{ marginTop: '.5rem', color: '#B91C1C' }}>{resendError}</p>}
           </div>
         )}
 
@@ -154,34 +185,18 @@ export default function Profile() {
 
         {blogsLoading ? (
           <p style={{ fontSize: '0.875rem', color: '#6B7280', textAlign: 'center', padding: '2rem 0' }}>Loading your stories…</p>
+        ) : blogsError ? (
+          <p role="alert" style={{ textAlign: 'center', padding: '2rem 0' }}>{blogsError} <button type="button" onClick={() => setLoadVersion(version => version + 1)}>Retry</button></p>
         ) : myBlogs.length === 0 ? (
           <p style={{ fontSize: '0.875rem', color: '#6B7280', textAlign: 'center', padding: '3rem 0' }}>
             No stories yet. <Link to="/post" style={{ textDecoration: 'underline', color: '#000' }}>Write your first one.</Link>
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: '#EAE2D8', padding: '1.5rem 2rem', borderRadius: 2 }}>
-            {myBlogs.map((s, i) => (
-              <article key={i} className="story-row feature-card" style={{ cursor: 'pointer' }}>
-                <div style={{ overflow: 'hidden', minHeight: 140, background: '#5C7A6E' }}>
-                  {s.coverImageUrl && <img src={s.coverImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply', opacity: 0.8 }} />}
-                </div>
-                <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <p style={{ fontSize: '0.72rem', color: '#757575', marginBottom: '0.5rem' }}>
-                      {s.publishedAt ? new Date(s.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Draft'} · {s.readingTimeMinutes || 1} min read
-                    </p>
-                    <h3 className="font-display" style={{ fontSize: 'clamp(1.125rem, 2vw, 1.5rem)', textTransform: 'uppercase', lineHeight: 1.15, marginBottom: '0.5rem' }}>{s.title}</h3>
-                    <p style={{ fontSize: '0.8rem', color: '#757575', lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.excerpt || ''}</p>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.75rem' }}>
-                    <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#757575' }}>{(s.tags || [])[0] || ''}</p>
-                    <span style={{ fontSize: '0.65rem', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.status}</span>
-                  </div>
-                </div>
-              </article>
-            ))}
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {myBlogs.map(story => <BlogCard key={story.id} post={story} />)}
           </div>
         )}
+        {blogsCursor && !blogsLoading && !blogsError && <div style={{ textAlign: 'center', marginTop: '1.5rem' }}><button type="button" disabled={moreBlogsLoading} onClick={loadMoreBlogs}>{moreBlogsLoading ? 'Loading…' : 'Load more stories'}</button></div>}
       </main>
 
       {/* Edit Profile Modal */}

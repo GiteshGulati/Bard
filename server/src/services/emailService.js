@@ -60,6 +60,37 @@ function frame(title, message, link, action) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${safeTitle}</title></head><body style="margin:0;background:#f6f3ee;color:#26221e;font:16px/1.6 Arial,sans-serif"><main style="max-width:560px;margin:32px auto;padding:32px;background:#fff;border-radius:12px"><p style="color:#876044;font-weight:bold;letter-spacing:.12em">BARD</p><h1 style="font-size:26px;line-height:1.25">${safeTitle}</h1><p>${safeMessage}</p><p><a href="${safeLink}" style="display:inline-block;padding:12px 20px;background:#332820;color:#fff;text-decoration:none;border-radius:6px">${safeAction}</a></p><p style="font-size:14px;color:#655d55">If the button does not work, copy this link into your browser:<br><a href="${safeLink}">${safeLink}</a></p><p style="font-size:14px;color:#655d55">If you did not request this, you can ignore this message.</p></main></body></html>`;
 }
 
+function sanitizedDiagnostic(error) {
+  const safeToken = (value, maxLength, pattern = /^[A-Za-z0-9_-]+$/) => {
+    const token = typeof value === 'string' ? value : '';
+    return pattern.test(token) ? token.slice(0, maxLength) : undefined;
+  };
+  const responseCode = String(error?.responseCode ?? '');
+  return {
+    code: safeToken(error?.code, 40),
+    command: safeToken(error?.command, 32, /^[A-Za-z0-9_ -]+$/),
+    responseCode: /^\d{3}$/.test(responseCode) ? Number(responseCode) : undefined,
+  };
+}
+
+function recipientAddress(value) {
+  const address = typeof value === 'string' ? value : value?.address;
+  return typeof address === 'string' ? address.trim().toLowerCase() : '';
+}
+
+function acceptedResult(info, intendedRecipient) {
+  const accepted = Array.isArray(info?.accepted) ? info.accepted : [];
+  const rejected = Array.isArray(info?.rejected) ? info.rejected : [];
+  const recipient = intendedRecipient.trim().toLowerCase();
+  if (rejected.some((item) => recipientAddress(item) === recipient)) {
+    return { accepted: false, status: 'failed', reason: 'recipient_rejected' };
+  }
+  if (!accepted.some((item) => recipientAddress(item) === recipient)) {
+    return { accepted: false, status: 'failed', reason: 'recipient_not_accepted' };
+  }
+  return { accepted: true, status: 'smtp_accepted' };
+}
+
 async function send({ to, subject, title, message, url, action, text }) {
   const mail = {
     from: { name: env.EMAIL_FROM_NAME || 'Bard', address: env.EMAIL_FROM_ADDRESS || 'no-reply@example.invalid' },
@@ -68,8 +99,18 @@ async function send({ to, subject, title, message, url, action, text }) {
     text: `${text}\n\n${url}\n\nIf you did not request this, you can ignore this message.`,
     html: frame(title, message, url, action),
   };
-  if (testAdapter) return testAdapter.send(mail);
-  return getTransporter().sendMail(mail);
+  try {
+    // Never let an accidentally configured developer SMTP account receive test mail.
+    if (env.NODE_ENV === 'test' && !testAdapter) {
+      return { accepted: false, status: 'failed', reason: 'test_transport_disabled' };
+    }
+    const info = testAdapter ? await testAdapter.send(mail) : await getTransporter().sendMail(mail);
+    return acceptedResult(info, to);
+  } catch (error) {
+    const diagnostic = sanitizedDiagnostic(error);
+    console.warn('Transactional email send failed', diagnostic);
+    return { accepted: false, status: 'failed', reason: 'smtp_error', diagnostic };
+  }
 }
 
 function link(path, token) {

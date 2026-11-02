@@ -45,4 +45,5 @@ export const reportReviewSchema = z.object({
   status: z.enum(['resolved', 'dismissed']),
   resolutionNote: z.string().max(1000).optional().default(''),
   hideTarget: z.boolean().optional().default(false),
+  userAction: z.enum(['suspend', 'restore']).optional(),
 });

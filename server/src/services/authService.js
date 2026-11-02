@@ -2,12 +2,19 @@ import bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'node:crypto';
 import { env, isTest } from '../config/env.js';
 import { User } from '../models/User.js';
-import { badRequest, conflict, unauthorized } from '../utils/errors.js';
+import { accountSuspended, badRequest, conflict, emailNotVerified, unauthorized } from '../utils/errors.js';
 import { parse } from '../validators/common.js';
 import { emailRequestSchema, loginSchema, passwordChangeSchema, registerSchema, resetPasswordSchema, tokenSchema } from '../validators/auth.js';
 import { sendPasswordResetEmail, sendVerificationEmail, sendWelcomeEmail } from './emailService.js';
 
 const SALT_ROUNDS = 12;
+let testRegistrationEmailDelivery = false;
+
+// Lets API tests exercise the real registration delivery branch while keeping
+// the existing fast, verified-account test fixture behavior by default.
+export function setRegistrationEmailDeliveryForTests(enabled) {
+  testRegistrationEmailDelivery = Boolean(enabled);
+}
 
 function looksLikeEmail(value) {
   return value.includes('@');
@@ -18,8 +25,14 @@ const makeToken = () => randomBytes(32).toString('base64url');
 const genericEmailResponse = 'If the address is associated with a Bard account, instructions will be sent shortly.';
 
 async function deliver(send, user, token) {
-  try { await send(user, token); return true; }
-  catch { return false; }
+  try {
+    const result = await send(user, token);
+    return result?.accepted === true
+      ? { accepted: true, status: 'smtp_accepted' }
+      : { accepted: false, status: 'failed', reason: result?.reason || 'recipient_not_accepted', diagnostic: result?.diagnostic };
+  } catch {
+    return { accepted: false, status: 'failed', reason: 'smtp_error' };
+  }
 }
 
 export async function register(payload) {
@@ -30,18 +43,21 @@ export async function register(payload) {
   });
   if (existing) throw conflict('An account cannot be created with those details');
   const passwordHash = await bcrypt.hash(data.password, SALT_ROUNDS);
+  const skipVerification = isTest && !testRegistrationEmailDelivery;
   const token = makeToken();
   const user = await User.create({
     username: data.username,
     emailNormalized: data.email,
     passwordHash,
     displayName,
-    emailVerified: isTest,
-    emailVerificationTokenHash: isTest ? undefined : hashToken(token),
-    emailVerificationExpiresAt: isTest ? undefined : new Date(Date.now() + 24 * 60 * 60 * 1000),
+    emailVerified: skipVerification,
+    emailVerificationTokenHash: skipVerification ? undefined : hashToken(token),
+    emailVerificationExpiresAt: skipVerification ? undefined : new Date(Date.now() + 24 * 60 * 60 * 1000),
   });
-  const verificationEmailSent = isTest ? false : await deliver(sendVerificationEmail, user, token);
-  return { user, verificationEmailSent };
+  const delivery = skipVerification
+    ? { accepted: false, status: 'failed', reason: 'test_delivery_skipped' }
+    : await deliver(sendVerificationEmail, user, token);
+  return { user, verificationEmailSent: delivery.accepted, verificationEmailStatus: delivery.status, delivery };
 }
 
 export async function login(payload) {
@@ -52,6 +68,8 @@ export async function login(payload) {
   if (!user) throw unauthorized('Invalid credentials');
   const ok = await bcrypt.compare(data.password, user.passwordHash);
   if (!ok) throw unauthorized('Invalid credentials');
+  if (user.moderationStatus === 'suspended') throw accountSuspended();
+  if (!user.emailVerified) throw emailNotVerified();
   if (!user.sessionVersion) user.sessionVersion = 1;
   return user;
 }

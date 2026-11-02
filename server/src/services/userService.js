@@ -2,9 +2,9 @@ import { User, Follow, Blog } from '../models/index.js';
 import { notFound, forbidden, conflict } from '../utils/errors.js';
 import { parse } from '../validators/common.js';
 import { profileUpdateSchema } from '../validators/auth.js';
-import { notify } from './notificationService.js';
+import { processPendingNotificationsSafely } from './notificationService.js';
 import { publicBlog, publicUser } from '../utils/dto.js';
-import { nextCursorFrom } from '../utils/pagination.js';
+import { applyCursor, nextCursorFrom } from '../utils/pagination.js';
 import { cleanupAssetIfUnreferenced } from './uploadService.js';
 
 export async function getByUsername(username, viewerId) {
@@ -47,12 +47,12 @@ export async function followUser(followerId, targetId) {
   const target = await User.findById(targetId);
   if (!target) throw notFound('User not found');
   try {
-    await Follow.create({ follower: followerId, followed: targetId });
+    await Follow.create({ follower: followerId, followed: targetId, notificationPendingAt: new Date() });
   } catch (err) {
     if (err.code === 11000) throw conflict('Already following');
     throw err;
   }
-  await notify({ recipient: targetId, actor: followerId, type: 'follow' });
+  await processPendingNotificationsSafely();
 }
 
 export async function unfollowUser(followerId, targetId) {
@@ -63,11 +63,11 @@ export async function listFollowers(username, { cursor, limit }) {
   const user = await User.findOne({ username: username.toLowerCase() });
   if (!user) throw notFound('Author not found');
   const query = { followed: user._id };
-  if (cursor) query._id = { $lt: cursor };
-  const rows = await Follow.find(query).sort({ _id: -1 }).limit(limit).populate('follower', 'username displayName avatarPath bio websiteUrl role createdAt');
+  applyCursor(query, cursor, 'createdAt');
+  const rows = await Follow.find(query).sort({ createdAt: -1, _id: -1 }).limit(limit).populate('follower', 'username displayName avatarPath bio websiteUrl role createdAt');
   return {
     items: rows.map((row) => publicUser(row.follower)),
-    nextCursor: nextCursorFrom(rows, limit),
+    nextCursor: nextCursorFrom(rows, limit, 'createdAt'),
   };
 }
 
@@ -75,11 +75,11 @@ export async function listFollowing(username, { cursor, limit }) {
   const user = await User.findOne({ username: username.toLowerCase() });
   if (!user) throw notFound('Author not found');
   const query = { follower: user._id };
-  if (cursor) query._id = { $lt: cursor };
-  const rows = await Follow.find(query).sort({ _id: -1 }).limit(limit).populate('followed', 'username displayName avatarPath bio websiteUrl role createdAt');
+  applyCursor(query, cursor, 'createdAt');
+  const rows = await Follow.find(query).sort({ createdAt: -1, _id: -1 }).limit(limit).populate('followed', 'username displayName avatarPath bio websiteUrl role createdAt');
   return {
     items: rows.map((row) => publicUser(row.followed)),
-    nextCursor: nextCursorFrom(rows, limit),
+    nextCursor: nextCursorFrom(rows, limit, 'createdAt'),
   };
 }
 
@@ -93,10 +93,10 @@ export async function listUserBlogs(username, viewer, { cursor, limit }) {
     query.status = 'published';
     query.visibility = 'public';
   }
-  if (cursor) query._id = { $lt: cursor };
-  const rows = await Blog.find(query).sort({ _id: -1 }).limit(limit).populate('author', 'username displayName avatarPath bio websiteUrl role createdAt');
+  applyCursor(query, cursor, 'updatedAt');
+  const rows = await Blog.find(query).sort({ updatedAt: -1, _id: -1 }).limit(limit).populate('author', 'username displayName avatarPath bio websiteUrl role createdAt');
   return {
     items: rows.map((row) => publicBlog(row)),
-    nextCursor: nextCursorFrom(rows, limit),
+    nextCursor: nextCursorFrom(rows, limit, 'updatedAt'),
   };
 }

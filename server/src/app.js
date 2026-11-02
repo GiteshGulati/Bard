@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import session from 'express-session';
 import MongoStore from 'connect-mongo';
@@ -12,6 +13,9 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import api from './routes/index.js';
 import { uploadRoot } from './services/uploadService.js';
 
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const frontendDist = path.join(projectRoot, 'bard-react', 'dist');
+
 export async function createApp() {
   const app = express();
   app.set('trust proxy', 1);
@@ -22,11 +26,12 @@ export async function createApp() {
       ? {
         directives: {
           defaultSrc: ["'self'"],
-          imgSrc: ["'self'", 'data:', 'blob:'],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https://images.unsplash.com', 'https://res.cloudinary.com', 'https://i.pravatar.cc'],
           styleSrc: ["'self'", "'unsafe-inline'"],
+          styleSrcElem: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
           scriptSrc: ["'self'"],
           connectSrc: ["'self'"],
-          fontSrc: ["'self'"],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         },
       }
       : false,
@@ -79,12 +84,11 @@ export async function createApp() {
   app.use('/api/v1', api);
   app.use(notFoundHandler);
 
-  const clientDist = path.resolve(process.cwd(), '../client/dist');
-  if (fs.existsSync(clientDist)) {
-    app.use(express.static(clientDist));
+  if (fs.existsSync(frontendDist)) {
+    app.use(express.static(frontendDist, { index: false }));
     app.get('*', (req, res, next) => {
       if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) return next();
-      res.sendFile(path.join(clientDist, 'index.html'));
+      res.sendFile(path.join(frontendDist, 'index.html'));
     });
   }
 

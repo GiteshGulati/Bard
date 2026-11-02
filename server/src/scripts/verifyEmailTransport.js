@@ -5,8 +5,18 @@ if (!isEmailConfigured()) {
   process.exitCode = 1;
 } else try {
   await verifyEmailTransport();
-  if (process.argv.includes('--send')) await sendConfigurationTest();
-  process.stdout.write(process.argv.includes('--send') ? 'SMTP verified and test message accepted for delivery to the configured SMTP account.\n' : 'SMTP connection verified.\n');
+  if (process.argv.includes('--send')) {
+    const result = await sendConfigurationTest();
+    if (!result.accepted) {
+      const fields = [result.diagnostic?.code, result.diagnostic?.command, result.diagnostic?.responseCode].filter(Boolean).join(' ');
+      process.stderr.write(`SMTP verified, but the test recipient was not accepted (${result.reason || 'send failed'}${fields ? `: ${fields}` : ''}).\n`);
+      process.exitCode = 1;
+    } else {
+      process.stdout.write('SMTP verified and test message accepted by the SMTP server; inbox delivery is not confirmed.\n');
+    }
+  } else {
+    process.stdout.write('SMTP connection verified.\n');
+  }
 } catch (error) {
   const message = `${error?.code || ''} ${error?.responseCode || ''}`;
   const category = /EAUTH|535|authentication/i.test(message) ? 'SMTP authentication failed.'

@@ -1,6 +1,8 @@
 ﻿import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { auth as authApi } from '../api'
+import { registrationEmailFeedback } from '../registrationFeedback'
 
 export default function Signup() {
   const [displayName, setDisplayName] = useState('')
@@ -9,8 +11,11 @@ export default function Signup() {
   const [password, setPassword] = useState('')
   const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
+  const [registrationResult, setRegistrationResult] = useState(null)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
+  const [resendError, setResendError] = useState('')
   const { register } = useAuth()
-  const navigate = useNavigate()
 
   function validatePassword(pw) {
     if (pw.length < 8) return 'Password must be at least 8 characters.'
@@ -26,14 +31,30 @@ export default function Signup() {
     if (pwErr) { setError(pwErr); return }
     setLoading(true)
     try {
-      await register(displayName.trim(), username.trim().toLowerCase(), email.toLowerCase().trim(), password)
-      navigate('/profile')
+      const response = await register(displayName.trim(), username.trim().toLowerCase(), email.toLowerCase().trim(), password)
+      setRegistrationResult(response?.data || {})
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.')
     } finally {
       setLoading(false)
     }
   }
+
+  async function handleResend() {
+    setResendLoading(true)
+    setResendMessage('')
+    setResendError('')
+    try {
+      const response = await authApi.resendVerification({ email: email.toLowerCase().trim() })
+      setResendMessage(response?.data?.message || 'If the address is associated with a Bard account, instructions will be sent shortly. Check your inbox and spam folder.')
+    } catch (err) {
+      setResendError(err.message || 'Could not request another verification email. Please try again later.')
+    } finally {
+      setResendLoading(false)
+    }
+  }
+
+  const emailFeedback = registrationResult ? registrationEmailFeedback(registrationResult, email) : null
 
   return (
     <div style={{ background: '#F2EBE1', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -51,6 +72,24 @@ export default function Signup() {
             Sign Up
           </h1>
 
+          {registrationResult ? (
+            <section aria-live="polite" style={{ width: '100%', background: '#EAE2D8', padding: '1.5rem', borderLeft: '3px solid #000' }}>
+              <h2 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Account created</h2>
+              <p style={{ color: '#4B5563', fontSize: '0.9rem', lineHeight: 1.65 }}>
+                {emailFeedback.message}
+              </p>
+              {emailFeedback.accepted && (
+                <p style={{ marginTop: '1rem', color: '#4B5563', fontSize: '0.85rem' }}>You can stay on this page and verify your email when the message arrives.</p>
+              )}
+              <div style={{ marginTop: '1rem' }}>
+                <button type="button" onClick={handleResend} disabled={resendLoading} style={{ background: '#000', color: '#fff', fontWeight: 600, padding: '0.7rem 1rem', border: 'none', cursor: resendLoading ? 'not-allowed' : 'pointer', opacity: resendLoading ? 0.7 : 1 }}>
+                  {resendLoading ? 'Requesting…' : 'Resend verification email'}
+                </button>
+                {resendMessage && <p role="status" style={{ marginTop: '0.75rem', fontSize: '0.85rem', lineHeight: 1.6 }}>{resendMessage}</p>}
+                {resendError && <p role="alert" style={{ marginTop: '0.75rem', color: '#B91C1C', fontSize: '0.85rem' }}>{resendError}</p>}
+              </div>
+            </section>
+          ) : (
           <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <input className="input-field" type="text"     placeholder="Display Name" required value={displayName} onChange={e => setDisplayName(e.target.value)} />
             <input className="input-field" type="text"
@@ -77,6 +116,7 @@ export default function Signup() {
               {loading ? 'Creating account…' : 'Sign up'}
             </button>
           </form>
+          )}
 
           <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.875rem' }}>
             <span style={{ color: '#6B7280' }}>Already a member? </span>

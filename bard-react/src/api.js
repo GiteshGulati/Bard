@@ -8,11 +8,17 @@ const BASE = '/api/v1'
 
 let _csrfToken = null
 
-async function getCsrfToken() {
-  if (_csrfToken) return _csrfToken
+async function getCsrfToken({ refresh = false } = {}) {
+  if (_csrfToken && !refresh) return _csrfToken
   const res = await fetch(`${BASE}/csrf-token`, { credentials: 'include' })
-  const json = await res.json()
-  _csrfToken = json?.data?.csrfToken ?? null
+  const json = await res.json().catch(() => null)
+  const token = json?.data?.csrfToken
+  if (!res.ok || !token) {
+    const error = new Error('Could not refresh the security token. Please try again.')
+    error.status = res.status
+    throw error
+  }
+  _csrfToken = token
   return _csrfToken
 }
 
@@ -25,53 +31,68 @@ const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 async function request(path, { json, headers: extraHeaders, ...opts } = {}) {
   const method = (opts.method ?? 'GET').toUpperCase()
-  const headers = new Headers(extraHeaders)
-
   let body = opts.body
+  let headers = new Headers(extraHeaders)
   if (json !== undefined) {
     body = JSON.stringify(json)
     headers.set('Content-Type', 'application/json')
   }
 
-  if (MUTATING.has(method)) {
-    const token = await getCsrfToken()
-    if (token) headers.set('x-csrf-token', token)
-  }
+  const mutating = MUTATING.has(method)
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
+  const replayableBody = body == null || typeof body === 'string' || isFormData
+  let csrfRetryUsed = false
 
-  const res = await fetch(`${BASE}${path}`, {
-    ...opts,
-    method,
-    headers,
-    body,
-    credentials: 'include',
-  })
+  while (true) {
+    headers = new Headers(extraHeaders)
+    if (json !== undefined) headers.set('Content-Type', 'application/json')
+    else if (isFormData) headers.delete('Content-Type')
 
-  if (MUTATING.has(method) && res.ok) {
-    if (path.startsWith('/auth/login') || path.startsWith('/auth/logout') || path.startsWith('/auth/register')) {
+    if (mutating) {
+      const token = await getCsrfToken()
+      if (token) headers.set('x-csrf-token', token)
+    }
+
+    const res = await fetch(`${BASE}${path}`, {
+      ...opts,
+      method,
+      headers,
+      body,
+      credentials: 'include',
+    })
+
+    let data
+    const ct = res.headers.get('content-type') || ''
+    if (ct.includes('application/json')) {
+      data = await res.json()
+    } else {
+      data = await res.text()
+    }
+
+    if (!res.ok) {
+      const err = new Error(
+        (typeof data === 'object' && data?.error?.message) ||
+        (typeof data === 'string' && data) ||
+        `Request failed: ${res.status}`,
+      )
+      err.status = res.status
+      err.data = data
+
+      const isCsrfFailure = res.status === 403 && data?.error?.code === 'CSRF'
+      if (mutating && replayableBody && isCsrfFailure && !csrfRetryUsed) {
+        csrfRetryUsed = true
+        clearCsrf()
+        await getCsrfToken({ refresh: true })
+        continue
+      }
+      throw err
+    }
+
+    if (mutating && (path.startsWith('/auth/login') || path.startsWith('/auth/logout') || path.startsWith('/auth/register'))) {
       clearCsrf()
     }
+    return data
   }
-
-  let data
-  const ct = res.headers.get('content-type') || ''
-  if (ct.includes('application/json')) {
-    data = await res.json()
-  } else {
-    data = await res.text()
-  }
-
-  if (!res.ok) {
-    const message =
-      (typeof data === 'object' && data?.error?.message) ||
-      (typeof data === 'string' && data) ||
-      `Request failed: ${res.status}`
-    const err = new Error(message)
-    err.status = res.status
-    err.data = data
-    throw err
-  }
-
-  return data
 }
 
 // ── Auth ────────────────────────────────────────────────────────────────────
@@ -130,7 +151,7 @@ export const comments = {
 
 // ── Users ────────────────────────────────────────────────────────────────────
 export const users = {
-  get: (username) => request(`/users/${username}`),
+  get: (username) => request(`/users/${encodeURIComponent(username)}`),
   myBlogs: (username, params = {}) => {
     const qs = new URLSearchParams(params).toString()
     return request(`/users/${username}/blogs${qs ? '?' + qs : ''}`)
@@ -148,12 +169,27 @@ export const users = {
 
 // ── Social ───────────────────────────────────────────────────────────────────
 export const social = {
-  bookmarks: () => request('/me/bookmarks'),
+  bookmarks: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`/me/bookmarks${qs ? '?' + qs : ''}`)
+  },
   addBookmark: (blogId) => request(`/me/bookmarks/${blogId}`, { method: 'PUT' }),
   removeBookmark: (blogId) => request(`/me/bookmarks/${blogId}`, { method: 'DELETE' }),
-  notifications: () => request('/notifications'),
+  notifications: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`/notifications${qs ? '?' + qs : ''}`)
+  },
   readNotification: (id) => request(`/notifications/${id}/read`, { method: 'PATCH' }),
   readAllNotifications: () => request('/notifications/read-all', { method: 'PATCH' }),
+}
+
+export const moderation = {
+  reports: (params = {}) => {
+    const qs = new URLSearchParams(params).toString()
+    return request(`/admin/reports${qs ? '?' + qs : ''}`)
+  },
+  report: (id) => request(`/admin/reports/${id}`),
+  review: (id, body) => request(`/admin/reports/${id}`, { method: 'PATCH', json: body }),
 }
 
 // ── Uploads ──────────────────────────────────────────────────────────────────

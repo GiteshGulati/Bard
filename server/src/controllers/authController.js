@@ -17,12 +17,15 @@ function saveSession(req) {
 }
 
 export const register = asyncHandler(async (req, res) => {
-  const { user, verificationEmailSent } = await authService.register(req.body);
+  const { user, verificationEmailSent, verificationEmailStatus } = await authService.register(req.body);
   await regenerate(req);
   req.session.userId = String(user._id);
   req.session.sessionVersion = user.sessionVersion || 1;
   await saveSession(req);
-  res.status(201).json({ success: true, data: { user: privateUser(user), verificationEmailSent, message: 'Account created. Verify your email to unlock writing and community features.' } });
+  const message = verificationEmailSent
+    ? 'Account created. The verification email was accepted by the mail server; check your inbox or spam folder. SMTP acceptance does not guarantee inbox delivery.'
+    : 'Account was created, but the verification email could not be accepted for sending. You can request another verification email.';
+  res.status(201).json({ success: true, data: { user: privateUser(user), verificationEmailSent, verificationEmailStatus, message } });
 });
 
 export const login = asyncHandler(async (req, res) => {

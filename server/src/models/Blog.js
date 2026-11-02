@@ -25,6 +25,7 @@ blogSchema.index({ title: 'text', excerpt: 'text', plainText: 'text' });
 blogSchema.index({ status: 1, visibility: 1, publishedAt: -1, _id: -1 });
 blogSchema.index({ author: 1, status: 1, publishedAt: -1 });
 blogSchema.index({ tags: 1, status: 1, publishedAt: -1 });
-blogSchema.index({ author: 1, updatedAt: -1 });
+blogSchema.index({ author: 1, updatedAt: -1, _id: -1 });
+blogSchema.index({ author: 1, status: 1, updatedAt: -1, _id: -1 });
 
 export const Blog = mongoose.model('Blog', blogSchema);

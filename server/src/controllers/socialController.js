@@ -43,7 +43,7 @@ export const listNotifications = asyncHandler(async (req, res) => {
     data: {
       items: mapped,
       unreadCount,
-      nextCursor: nextCursorFrom(items, limit),
+      nextCursor: nextCursorFrom(items, limit, '_id'),
     },
   });
 });

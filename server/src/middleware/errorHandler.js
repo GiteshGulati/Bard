@@ -23,7 +23,14 @@ export function errorHandler(err, req, res, next) {
   }
 
   if (err.name === 'MulterError') {
-    const message = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large' : err.message;
+    const messages = {
+      LIMIT_FILE_SIZE: 'File is too large',
+      LIMIT_FILE_COUNT: 'Too many files',
+      LIMIT_FIELD_COUNT: 'Too many form fields',
+      LIMIT_FIELD_VALUE: 'A form field is too large',
+      LIMIT_PART_COUNT: 'Too many multipart parts',
+    };
+    const message = messages[err.code] || 'Invalid multipart upload';
     return res.status(400).json({ success: false, error: { message, code: 'UPLOAD' } });
   }
 
