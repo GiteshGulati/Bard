@@ -1,7 +1,14 @@
 import sanitizeHtml from 'sanitize-html';
-import { isCloudinaryImageUrl } from '../config/cloudinary.js';
+import { isIP } from 'node:net';
 
 const ALLOWED_IMAGE_PREFIX = '/uploads/';
+
+function isPublicImageHost(hostname) {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  const version = isIP(host);
+  if (version) return false;
+  return host.includes('.') && !['.localhost', '.local', '.internal', '.lan', '.home', '.home.arpa', '.test', '.invalid'].some((suffix) => host.endsWith(suffix));
+}
 
 function escapeHtml(value) {
   return String(value)
@@ -34,7 +41,13 @@ export function safeImageUrl(raw) {
     if (trimmed.includes('..') || trimmed.includes('\\')) return null;
     return trimmed;
   }
-  return isCloudinaryImageUrl(trimmed) ? trimmed : null;
+  try {
+    const url = new URL(trimmed);
+    if (!['http:', 'https:'].includes(url.protocol) || !url.hostname || url.username || url.password || !isPublicImageHost(url.hostname)) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 function applyInline(text, attrs = {}) {
@@ -174,7 +187,7 @@ export function sanitizeArticleHtml(html) {
     allowedTags: ['p', 'br', 'h1', 'h2', 'h3', 'h4', 'strong', 'em', 'u', 's', 'a', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img'],
     allowedAttributes: {
       a: ['href', 'rel', 'target'],
-      img: ['src', 'alt'],
+      img: ['src', 'alt', 'referrerpolicy'],
     },
     allowedSchemes: ['http', 'https', 'mailto'],
     allowedSchemesByTag: {
@@ -183,9 +196,9 @@ export function sanitizeArticleHtml(html) {
     transformTags: {
       a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer nofollow', target: '_blank' }),
       img: (tagName, attribs) => {
-        const src = safeImageUrl(attribs.src) || (safeUrl(attribs.src)?.startsWith('http') ? null : null);
+        const src = safeImageUrl(attribs.src);
         if (!src) return { tagName: 'span', text: '' };
-        return { tagName: 'img', attribs: { src, alt: attribs.alt || '' } };
+        return { tagName: 'img', attribs: { src, alt: attribs.alt || '', referrerpolicy: 'no-referrer' } };
       },
     },
     exclusiveFilter: (frame) => frame.tag === 'img' && !safeImageUrl(frame.attribs.src),

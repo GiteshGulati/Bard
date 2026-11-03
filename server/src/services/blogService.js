@@ -79,7 +79,7 @@ export async function createBlog(authorId, payload, coverAsset = null) {
     contentDelta: rendered.delta,
     htmlSanitized: rendered.html,
     plainText: rendered.plainText,
-    coverImagePath: coverAsset?.url || null,
+    coverImagePath: coverAsset?.url || data.coverImageUrl || null,
     coverAsset: coverAsset?.assetId || null,
     inlineAssets,
     tags: data.tags,
@@ -103,6 +103,7 @@ export async function updateBlog(blogId, viewer, payload, coverAsset = null) {
   }
   const oldCoverAsset = blog.coverAsset;
   const oldInlineAssets = [...(blog.inlineAssets || [])];
+  let coverChanged = false;
   if (data.title) blog.title = data.title;
   if (data.excerpt !== undefined) blog.excerpt = data.excerpt;
   if (data.content) {
@@ -119,6 +120,11 @@ export async function updateBlog(blogId, viewer, payload, coverAsset = null) {
   if (coverAsset) {
     blog.coverImagePath = coverAsset.url;
     blog.coverAsset = coverAsset.assetId || null;
+    coverChanged = true;
+  } else if (data.coverImageUrl !== undefined) {
+    blog.coverImagePath = data.coverImageUrl;
+    blog.coverAsset = null;
+    coverChanged = true;
   }
   if (data.status === 'published') {
     blog.status = 'published';
@@ -128,7 +134,7 @@ export async function updateBlog(blogId, viewer, payload, coverAsset = null) {
     blog.status = 'draft';
   }
   await blog.save();
-  if (coverAsset && oldCoverAsset && String(oldCoverAsset) !== String(coverAsset.assetId)) {
+  if (coverChanged && oldCoverAsset && String(oldCoverAsset) !== String(coverAsset?.assetId || '')) {
     await cleanupAssetIfUnreferenced(oldCoverAsset, blog.author);
   }
   const nextInlineAssets = new Set((blog.inlineAssets || []).map(String));

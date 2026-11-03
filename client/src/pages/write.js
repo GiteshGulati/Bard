@@ -3,6 +3,39 @@ import { Blogs, Uploads } from '../api.js';
 import { debounce, escapeHtml, toast } from '../utils.js';
 import { navigate } from '../router.js';
 
+function safeExternalImageUrl(value) {
+  try {
+    const url = new URL(String(value || '').trim());
+    const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+    if (!['http:', 'https:'].includes(url.protocol) || !hostname || url.username || url.password) return null;
+    if (hostname.includes(':') || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname) || !hostname.includes('.')
+      || ['.localhost', '.local', '.internal', '.lan', '.home', '.home.arpa', '.test', '.invalid'].some(suffix => hostname.endsWith(suffix))) return null;
+    return url.href;
+  } catch { return null; }
+}
+
+function verifyDirectImageUrl(value, cache) {
+  const src = safeExternalImageUrl(value);
+  if (!src) return Promise.reject(new Error('Image URL must use HTTP or HTTPS without embedded credentials.'));
+  if (cache.has(src)) return Promise.resolve(src);
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    let settled = false;
+    const finish = (loaded) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      if (loaded && image.naturalWidth > 0) { cache.add(src); resolve(src); }
+      else reject(new Error('That URL did not load as a direct image. Use a direct, publicly accessible image link.'));
+    };
+    const timeout = setTimeout(() => finish(false), 10000);
+    image.referrerPolicy = 'no-referrer';
+    image.onload = () => finish(true);
+    image.onerror = () => finish(false);
+    image.src = src;
+  });
+}
+
 export async function writePage({ id } = {}) {
   let blog = null;
   if (id) ({ blog } = await Blogs.byId(id));
@@ -14,9 +47,11 @@ export async function writePage({ id } = {}) {
       <label for="title">Title</label><input class="field title-field" id="title" maxlength="160" required placeholder="A title worth keeping" value="${escapeHtml(blog?.title || '')}">
       <label for="excerpt">Short introduction</label><textarea class="field" id="excerpt" maxlength="400" rows="2" placeholder="A few lines to invite the reader">${escapeHtml(blog?.excerpt || '')}</textarea>
       <label for="tags">Tags <span class="meta">(comma separated, up to 8)</span></label><input class="field" id="tags" maxlength="260" placeholder="essays, craft, travel" value="${escapeHtml(blog?.tags?.join(', ') || '')}">
-      <label for="cover">Cover image</label><input class="field" id="cover" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+      <label for="cover">Cover image upload</label><input class="field" id="cover" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+      <label for="cover-url">Or replace it with a cover image URL</label><input class="field" id="cover-url" type="url" placeholder="https://images.example.com/cover">
       ${blog?.coverImageUrl ? `<img class="writer-cover" src="${escapeHtml(blog.coverImageUrl)}" alt="Current cover image" width="720" height="360">` : ''}
       <label>Article</label><div id="quill-editor" class="editor-surface" aria-label="Article text editor"></div>
+      <div class="row" style="gap:.6rem; margin-top:.65rem"><label for="inline-image-url">Insert image from URL</label><input class="field" id="inline-image-url" type="url" placeholder="https://images.example.com/image"><button class="btn-ghost" id="insert-image-url" type="button">Insert image</button></div>
       <div class="row writer-actions"><button class="btn-ghost" id="preview" type="button">Preview</button><button class="btn-ghost" id="save-draft" type="button">Save draft</button><button class="btn" id="publish" type="button">${blog?.status === 'published' ? 'Update published essay' : 'Publish'}</button></div>
       <div id="preview-pane" class="article-body preview-pane" hidden></div>
     </form>`;
@@ -54,6 +89,7 @@ export async function writePage({ id } = {}) {
   let saving = false;
   let editVersion = 0;
   let queuedStatus = null;
+  const verifiedImageUrls = new Set();
   const state = root.querySelector('#save-state');
   const values = () => ({
     title: root.querySelector('#title').value.trim() || 'Untitled',
@@ -65,8 +101,14 @@ export async function writePage({ id } = {}) {
     if (saving) { queuedStatus = status; return; }
     saving = true; state.textContent = 'Saving…';
     const savedVersion = editVersion;
-    const payload = { ...values(), status, expectedUpdatedAt: blog?.updatedAt };
+    const coverUrlInput = root.querySelector('#cover-url').value.trim();
+    const coverImageUrl = coverUrlInput ? safeExternalImageUrl(coverUrlInput) : null;
+    if (coverUrlInput && !coverImageUrl) {
+      saving = false; state.textContent = 'Save failed'; toast('Cover image URL must use HTTP or HTTPS'); return;
+    }
+    const payload = { ...values(), ...(coverImageUrl ? { coverImageUrl } : {}), status, expectedUpdatedAt: blog?.updatedAt };
     try {
+      if (coverImageUrl) await verifyDirectImageUrl(coverImageUrl, verifiedImageUrls);
       const file = root.querySelector('#cover').files[0];
       let response;
       if (blog) {
@@ -108,7 +150,29 @@ export async function writePage({ id } = {}) {
   const changed = () => { editVersion += 1; dirty = true; state.textContent = 'Unsaved changes'; autosave(); };
   quill.on('text-change', changed);
   root.querySelectorAll('#title,#excerpt,#tags').forEach((el) => el.addEventListener('input', changed));
-  root.querySelector('#cover').addEventListener('change', changed);
+  root.querySelector('#cover').addEventListener('change', (event) => {
+    if (event.target.files?.[0]) root.querySelector('#cover-url').value = '';
+    changed();
+  });
+  root.querySelector('#cover-url').addEventListener('input', (event) => {
+    if (event.target.value.trim()) root.querySelector('#cover').value = '';
+    changed();
+  });
+  root.querySelector('#insert-image-url').addEventListener('click', async () => {
+    const input = root.querySelector('#inline-image-url');
+    const stateText = state.textContent;
+    state.textContent = 'Checking image URL…';
+    try {
+      const src = await verifyDirectImageUrl(input.value, verifiedImageUrls);
+      const selection = quill.getSelection(true);
+      quill.insertEmbed(selection.index, 'image', src, 'user');
+      quill.setSelection(selection.index + 1);
+      input.value = '';
+      dirty = true; state.textContent = 'Unsaved changes'; autosave();
+    } catch (err) {
+      state.textContent = stateText; toast(err.message);
+    }
+  });
   root.querySelector('#save-draft').addEventListener('click', () => { autosave.flush(); save('draft'); });
   root.querySelector('#publish').addEventListener('click', () => { autosave.flush(); save('published'); });
   root.querySelector('#preview').addEventListener('click', () => {

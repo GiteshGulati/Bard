@@ -221,11 +221,16 @@ input:-webkit-autofill:focus {
 
 .ov-hero {
   width: 100%; height: 260px; background-size: cover;
-  background-position: center; margin-bottom: 2rem; border-radius: 2px;
+  background-position: center; margin-bottom: 2rem; border-radius: 2px; overflow: hidden; background-color: #EAE2D8;
 }
+.ov-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .ov-body { font-size: 0.93rem; line-height: 1.8; color: #2A2A2A; }
 .ov-body p { margin-bottom: 1.1rem; }
+.ov-body img { display: block; max-width: 100%; height: auto; margin: 1.25rem auto; border-radius: 2px; }
+.article-image-fallback { display: block; padding: .8rem 1rem; color: #6B7280; background: #F2EBE1; border: 1px solid #E0DCD6; font-size: .8rem; text-align: center; }
+.inline-image-preview { margin-top: .8rem; padding: .75rem; border: 1px solid #E0DCD6; background: #FDFCFB; line-height: 1.6; }
+.inline-image-preview img { display: block; max-width: 100%; height: auto; max-height: 320px; margin: .5rem 0; object-fit: contain; }
 .ov-body h2 {
   font-family: var(--font-display); font-size: 1.25rem;
   text-transform: uppercase; margin: 2rem 0 0.6rem; color: #111;

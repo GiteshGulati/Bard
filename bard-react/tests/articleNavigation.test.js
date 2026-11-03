@@ -7,12 +7,14 @@ import { createServer } from 'vite'
 
 let vite
 let BlogCard
+let ArticleCoverImage
 let articlePath
 let AuthContext
 
 before(async () => {
   vite = await createServer({ configFile: './vite.config.js', server: { middlewareMode: true }, appType: 'custom' })
   ;({ default: BlogCard } = await vite.ssrLoadModule('/src/components/BlogCard.jsx'))
+  ;({ default: ArticleCoverImage } = await vite.ssrLoadModule('/src/components/ArticleCoverImage.jsx'))
   ;({ articlePath } = await vite.ssrLoadModule('/src/components/articlePath.js'))
   ;({ AuthContext } = await vite.ssrLoadModule('/src/context/authState.js'))
 })
@@ -26,6 +28,7 @@ const createdStory = {
   title: 'A story created by a reader',
   author: { id: '66a000000000000000000124', username: 'reader', displayName: 'Reader' },
   excerpt: 'A real API story.',
+  coverImageUrl: 'https://cdn.example.com/story-cover?width=900&quality=80',
   tags: ['journaling'],
   likeCount: 0,
   commentCount: 0,
@@ -53,5 +56,12 @@ describe('article navigation', () => {
 
   it('uses the real database id for non-public stories', () => {
     assert.equal(articlePath({ ...createdStory, status: 'draft' }), `/article/id/${createdStory.id}`)
+  })
+
+  it('renders an external cover URL in feed and profile cards with a safe fallback handler', () => {
+    const html = renderCard('/')
+    assert.match(html, /<img src="https:\/\/cdn\.example\.com\/story-cover\?width=900&amp;quality=80" alt="" class="card-img"/)
+    assert.match(html, /referrerPolicy="no-referrer"/)
+    assert.equal(renderToStaticMarkup(React.createElement(ArticleCoverImage, { src: '' })), '')
   })
 })

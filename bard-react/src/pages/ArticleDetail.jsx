@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { blogs as blogsApi, comments as commentsApi, social as socialApi } from '../api'
 import { useAuth } from '../context/authState'
+import ArticleCoverImage from '../components/ArticleCoverImage'
+import ArticleBody from '../components/ArticleBody'
 
 export default function ArticleDetail({ byId = false }) {
   const params = useParams()
@@ -146,9 +148,9 @@ export default function ArticleDetail({ byId = false }) {
         {blog.status !== 'published' && <p style={{ display: 'inline-block', background: '#EAE2D8', padding: '.35rem .65rem', marginBottom: '1rem', fontSize: '.68rem', textTransform: 'uppercase', letterSpacing: '.1em' }}>{blog.status} · only you and permitted administrators can view this</p>}
         <h1 className="ov-title">{blog.title}</h1>
         {blog.excerpt && <p style={{ fontSize: '.95rem', color: '#5E5A54', lineHeight: 1.7, marginBottom: '1.5rem' }}>{blog.excerpt}</p>}
-        {blog.coverImageUrl && <div className="ov-hero" style={{ backgroundImage: `url('${blog.coverImageUrl}')` }} />}
+        {blog.coverImageUrl && <div className="ov-hero"><ArticleCoverImage src={blog.coverImageUrl} alt="Story cover" /></div>}
         {!!blog.tags?.length && <div style={{ marginBottom: '1.75rem' }}>{blog.tags.map(tag => <Link key={tag} to={`/blogs?topic=${encodeURIComponent(tag)}`} className="topic-tag" style={{ color: '#000', textDecoration: 'none' }}>{tag}</Link>)}</div>}
-        <article className="ov-body" dangerouslySetInnerHTML={{ __html: blog.html || '<p></p>' }} />
+        <ArticleBody html={blog.html} />
 
         <section className="ov-stats-row" aria-label="Story actions">
           <div className="ov-stats"><span>{blog.likeCount || 0} likes</span><span>{blog.commentCount || 0} comments</span></div>
@@ -189,7 +191,7 @@ export default function ArticleDetail({ byId = false }) {
           {commentsCursor && <button type="button" className="ov-comment-submit" onClick={loadMoreComments} disabled={commentsLoadingMore}>{commentsLoadingMore ? 'Loading…' : 'Load more comments'}</button>}
         </div>
       </section>
-      {!!related.length && <section className="ov-recent"><div className="ov-recent-header"><h2 className="ov-section-title">Related Stories</h2><Link to="/blogs" className="ov-see-all">See all →</Link></div><div className="ov-recent-grid">{related.map(item => <Link key={item.id} to={item.status === 'draft' ? `/article/id/${item.id}` : `/article/${encodeURIComponent(item.slug)}`} className="ov-recent-card" style={{ color: 'inherit', textDecoration: 'none' }}>{item.coverImageUrl ? <img className="ov-recent-img" src={item.coverImageUrl} alt="" /> : <div className="ov-recent-img" style={{ background: '#5C7A6E', display: 'grid', placeItems: 'center', color: '#fff' }}>BARD</div>}<p className="ov-recent-title">{item.title}</p><p className="ov-recent-meta">{item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : ''} · {item.readingTimeMinutes || 1} min read</p></Link>)}</div></section>}
+        {!!related.length && <section className="ov-recent"><div className="ov-recent-header"><h2 className="ov-section-title">Related Stories</h2><Link to="/blogs" className="ov-see-all">See all →</Link></div><div className="ov-recent-grid">{related.map(item => <Link key={item.id} to={item.status === 'draft' ? `/article/id/${item.id}` : `/article/${encodeURIComponent(item.slug)}`} className="ov-recent-card" style={{ color: 'inherit', textDecoration: 'none' }}>{item.coverImageUrl ? <ArticleCoverImage className="ov-recent-img" src={item.coverImageUrl} /> : <div className="ov-recent-img" style={{ background: '#5C7A6E', display: 'grid', placeItems: 'center', color: '#fff' }}>BARD</div>}<p className="ov-recent-title">{item.title}</p><p className="ov-recent-meta">{item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : ''} · {item.readingTimeMinutes || 1} min read</p></Link>)}</div></section>}
       </article>
     </div>
   )

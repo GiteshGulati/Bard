@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { articlePath } from './articlePath'
 import { useBlogCardActions } from './useBlogCardActions'
+import ArticleCoverImage from './ArticleCoverImage'
 
 function initials(author) {
   const name = author?.displayName || author?.username || 'B'
@@ -52,7 +53,7 @@ function BlogCardContent({ post, onChange, layout = 'card' }) {
   }
 
   const storyImage = post.coverImageUrl ? (
-    <img src={post.coverImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply', opacity: .8 }} />
+    <ArticleCoverImage src={post.coverImageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply', opacity: .8 }} />
   ) : <div aria-hidden="true" style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: 'rgba(255,255,255,.8)', fontFamily: 'var(--font-display)', letterSpacing: '.12em' }}>BARD</div>
 
   const actions = (
@@ -120,7 +121,7 @@ function BlogCardContent({ post, onChange, layout = 'card' }) {
         <Link to={href} state={state} aria-label={`Read ${post.title}`} style={{ width: '100%', height: '100%', background: '#5C7A6E', position: 'relative', overflow: 'hidden', flex: '0 0 45%', display: 'block' }}>
           <span className="read-badge">{readTime}</span>
           {post.coverImageUrl ? (
-            <img className="card-img" src={post.coverImageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply', opacity: 0.75 }} />
+            <ArticleCoverImage className="card-img" src={post.coverImageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: 'multiply', opacity: 0.75 }} />
           ) : (
             <div className="card-img" aria-hidden="true" style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: 'rgba(255,255,255,.8)', fontFamily: 'var(--font-display)', fontSize: '2rem', letterSpacing: '.12em' }}>BARD</div>
           )}

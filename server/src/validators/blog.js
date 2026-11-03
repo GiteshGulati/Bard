@@ -1,9 +1,18 @@
 import { z } from 'zod';
 import { tagSchema } from './common.js';
+import { safeImageUrl } from '../utils/delta.js';
+
+const imageUrlSchema = z.string().trim().url().refine(
+  (value) => Boolean(safeImageUrl(value)),
+  'Image URL must use HTTP or HTTPS and a public hostname',
+);
 
 const deltaSchema = z.object({
   ops: z.array(z.object({
-    insert: z.union([z.string(), z.object({ image: z.string() }).passthrough()]),
+    insert: z.union([
+      z.string(),
+      z.object({ image: z.string().refine((value) => Boolean(safeImageUrl(value)), 'Image URL must use HTTP or HTTPS') }).passthrough(),
+    ]),
     attributes: z.record(z.any()).optional(),
   })).max(4000),
 }).passthrough();
@@ -12,6 +21,7 @@ export const blogCreateSchema = z.object({
   title: z.string().trim().min(1).max(160).default('Untitled'),
   excerpt: z.string().max(400).optional().default(''),
   content: deltaSchema.optional(),
+  coverImageUrl: imageUrlSchema.optional(),
   tags: z.array(tagSchema).max(8).optional().default([]),
   status: z.enum(['draft', 'published']).optional().default('draft'),
   visibility: z.enum(['public', 'unlisted']).optional().default('public'),
@@ -22,6 +32,7 @@ export const blogUpdateSchema = z.object({
   title: z.string().trim().min(1).max(160).optional(),
   excerpt: z.string().max(400).optional(),
   content: deltaSchema.optional(),
+  coverImageUrl: imageUrlSchema.optional(),
   tags: z.array(tagSchema).max(8).optional(),
   status: z.enum(['draft', 'published']).optional(),
   visibility: z.enum(['public', 'unlisted']).optional(),

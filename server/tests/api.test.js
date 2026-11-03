@@ -12,6 +12,7 @@ import { setCloudinaryAdapterForTests } from '../src/config/cloudinary.js';
 import { processPendingNotifications } from '../src/services/notificationService.js';
 import { processPendingModerationReviews } from '../src/services/moderationService.js';
 import { processPendingBlogDeletions } from '../src/services/blogService.js';
+import { contentSecurityPolicy } from '../src/app.js';
 
 let app;
 const frontendDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../bard-react/dist');
@@ -133,6 +134,92 @@ describe('auth', () => {
 });
 
 describe('articles', () => {
+  it('stores, edits, and renders multiple external image URLs without accepting unsafe schemes', async () => {
+    const owner = agent();
+    await register(owner, { username: 'externalimagewriter', email: 'externalimagewriter@example.com' });
+    let token = await csrf(owner);
+    const firstUrl = 'https://images.example.com/landscape?width=1200&signature=abc';
+    const secondUrl = 'http://media.example.com/photo?id=42&format=webp';
+    const created = await owner.post('/api/v1/blogs').set('x-forwarded-for', '198.51.100.80').set('x-csrf-token', token).send({
+      title: 'External image rendering',
+      status: 'draft',
+      coverImageUrl: 'https://covers.example.com/article?size=wide',
+      content: { ops: [
+        { insert: 'Before image ', attributes: { bold: true } },
+        { insert: { image: firstUrl } },
+        { insert: ' between images ' },
+        { insert: { image: secondUrl } },
+        { insert: '\nAfter images.\n' },
+      ] },
+    });
+    assert.equal(created.status, 201);
+    const blogId = created.body.data.blog.id;
+    assert.equal((await agent().get(`/api/v1/blogs/${created.body.data.blog.slug}`)).status, 404);
+    assert.equal(created.body.data.blog.coverImageUrl, 'https://covers.example.com/article?size=wide');
+    assert.equal(created.body.data.blog.content.ops.filter(op => op.insert?.image).length, 2);
+    assert.match(created.body.data.blog.html, /<strong>Before image <\/strong>/);
+    assert.match(created.body.data.blog.html, /src="https:\/\/images\.example\.com\/landscape\?width=1200&amp;signature=abc"/);
+    assert.match(created.body.data.blog.html, /src="http:\/\/media\.example\.com\/photo\?id=42&amp;format=webp"/);
+    assert.ok(created.body.data.blog.html.indexOf('between images') < created.body.data.blog.html.indexOf('media.example.com'));
+
+    const reopened = await owner.get(`/api/v1/blogs/id/${blogId}`);
+    assert.equal(reopened.status, 200);
+    assert.deepEqual(reopened.body.data.blog.content.ops.filter(op => op.insert?.image).map(op => op.insert.image), [
+      'https://images.example.com/landscape?width=1200&signature=abc',
+      'http://media.example.com/photo?id=42&format=webp',
+    ]);
+    const storedDraft = await Blog.findById(blogId);
+    assert.deepEqual(storedDraft.contentDelta.ops.filter(op => op.insert?.image).map(op => op.insert.image), [firstUrl, secondUrl]);
+
+    token = await csrf(owner);
+    const coverPreserved = await owner.patch(`/api/v1/blogs/${blogId}`).set('x-forwarded-for', '198.51.100.80').set('x-csrf-token', token).send({ title: 'External image rendering edited' });
+    assert.equal(coverPreserved.status, 200);
+    assert.equal(coverPreserved.body.data.blog.coverImageUrl, 'https://covers.example.com/article?size=wide');
+
+    token = await csrf(owner);
+    const revisedUrl = 'https://cdn.example.com/revised-image?cache=off';
+    const edited = await owner.patch(`/api/v1/blogs/${blogId}`).set('x-forwarded-for', '198.51.100.80').set('x-csrf-token', token).send({
+      status: 'published',
+      coverImageUrl: 'http://covers.example.com/revised?width=900',
+      content: { ops: [
+        { insert: 'Updated image ' }, { insert: { image: firstUrl } },
+        { insert: ' and ' }, { insert: { image: secondUrl } },
+        { insert: ' then ' }, { insert: { image: revisedUrl } }, { insert: '\n' },
+      ] },
+    });
+    assert.equal(edited.status, 200);
+    assert.equal(edited.body.data.blog.coverImageUrl, 'http://covers.example.com/revised?width=900');
+    assert.match(edited.body.data.blog.html, /src="https:\/\/cdn\.example\.com\/revised-image\?cache=off"/);
+    assert.equal(edited.body.data.blog.html.match(/<img\b/g)?.length, 3);
+    const publishedRead = await agent().get(`/api/v1/blogs/${edited.body.data.blog.slug}`);
+    assert.equal(publishedRead.status, 200);
+    assert.equal(publishedRead.body.data.blog.html.match(/<img\b/g)?.length, 3);
+    assert.equal(publishedRead.body.data.blog.coverImageUrl, 'http://covers.example.com/revised?width=900');
+    const profileStories = await agent().get('/api/v1/users/externalimagewriter/blogs?limit=10');
+    assert.equal(profileStories.status, 200);
+    assert.equal(profileStories.body.data.items[0].coverImageUrl, 'http://covers.example.com/revised?width=900');
+
+    token = await csrf(owner);
+    for (const coverImageUrl of ['javascript:alert(1)', 'data:image/png;base64,AA==', 'file:///secret.png', 'not a url']) {
+      const invalidCover = await owner.patch(`/api/v1/blogs/${blogId}`).set('x-forwarded-for', '198.51.100.80').set('x-csrf-token', token).send({ coverImageUrl });
+      assert.equal(invalidCover.status, 422);
+    }
+    const unsafe = await owner.patch(`/api/v1/blogs/${blogId}`).set('x-forwarded-for', '198.51.100.80').set('x-csrf-token', token).send({
+      content: { ops: [{ insert: { image: 'javascript:alert(1)' } }] },
+    });
+    assert.equal(unsafe.status, 422);
+  });
+
+  it('includes the HTTP and HTTPS image sources in production CSP without changing script policy', () => {
+    const directives = contentSecurityPolicy(true).directives;
+    assert.ok(directives.imgSrc.includes("'self'"));
+    assert.ok(directives.imgSrc.includes('data:'));
+    assert.ok(directives.imgSrc.includes('blob:'));
+    assert.ok(directives.imgSrc.includes('https:'));
+    assert.ok(directives.imgSrc.includes('http:'));
+    assert.deepEqual(directives.scriptSrc, ["'self'"]);
+  });
+
   it('serves published story details by slug and keeps drafts owner/admin-only by id', async () => {
     const owner = agent();
     await register(owner, { username: 'storyowner', email: 'storyowner@example.com' });
@@ -862,7 +949,32 @@ describe('security', () => {
       assert.equal(opened.body.data.blog.coverImageUrl, cover.body.data.blog.coverImageUrl);
       const coverDoc = await Blog.findById(cover.body.data.blog.id);
       assert.ok(await CloudAsset.exists({ _id: coverDoc.coverAsset, owner: avatarDoc._id, kind: 'cover' }));
-      assert.match((await CloudAsset.findById(coverDoc.coverAsset)).publicId, /^bard\/covers\//);
+      const originalCoverAssetId = String(coverDoc.coverAsset);
+      const originalCoverAsset = await CloudAsset.findById(coverDoc.coverAsset);
+      assert.match(originalCoverAsset.publicId, /^bard\/covers\//);
+
+      token = await csrf(owner);
+      const externalCoverUrl = 'https://covers.example.com/replacement?width=1200';
+      const localToExternal = await owner.patch(`/api/v1/blogs/${cover.body.data.blog.id}`)
+        .set('x-csrf-token', token)
+        .send({ coverImageUrl: externalCoverUrl });
+      assert.equal(localToExternal.status, 200);
+      assert.equal(localToExternal.body.data.blog.coverImageUrl, externalCoverUrl);
+      const externalCoverDoc = await Blog.findById(cover.body.data.blog.id);
+      assert.equal(externalCoverDoc.coverAsset, null);
+      assert.equal(await CloudAsset.exists({ _id: originalCoverAssetId }), null);
+      assert.ok(removed.includes(originalCoverAsset.publicId));
+
+      token = await csrf(owner);
+      const externalToLocal = await owner.patch(`/api/v1/blogs/${cover.body.data.blog.id}`)
+        .set('x-forwarded-for', '203.0.113.45')
+        .set('x-csrf-token', token)
+        .field('coverImageUrl', 'https://covers.example.com/stale-value')
+        .attach('cover', PNG, 'replacement-cover.png');
+      assert.equal(externalToLocal.status, 200);
+      assert.match(externalToLocal.body.data.blog.coverImageUrl, /^https:\/\/res\.cloudinary\.com\//);
+      const replacedCoverDoc = await Blog.findById(cover.body.data.blog.id);
+      assert.ok(await CloudAsset.exists({ _id: replacedCoverDoc.coverAsset, owner: avatarDoc._id, kind: 'cover' }));
 
       token = await csrf(owner);
       const inline = await owner.post('/api/v1/uploads/inline').set('x-csrf-token', token).attach('image', PNG, 'inline.png');
@@ -872,9 +984,15 @@ describe('security', () => {
       const inlineBlog = await owner.post('/api/v1/blogs').set('x-csrf-token', token).send({
         title: 'Inline cloud image',
         status: 'published',
-        content: { ops: [{ insert: { image: inline.body.data.url } }, { insert: '\n' }] },
+      content: { ops: [
+        { insert: { image: inline.body.data.url } },
+        { insert: ' with external image ' },
+        { insert: { image: 'https://images.example.com/mixed?width=600' } },
+        { insert: '\n' },
+      ] },
       });
       assert.equal(inlineBlog.status, 201);
+      assert.equal(inlineBlog.body.data.blog.html.match(/<img\b/g)?.length, 2);
       const inlineBlogDoc = await Blog.findById(inlineBlog.body.data.blog.id);
       assert.equal(inlineBlogDoc.inlineAssets.length, 1);
       const secondInlineBlog = await owner.post('/api/v1/blogs').set('x-csrf-token', token).send({
@@ -908,6 +1026,7 @@ describe('security', () => {
         remove: async () => 'ok',
       });
       const failed = await owner.patch('/api/v1/users/me')
+        .set('x-forwarded-for', '203.0.113.46')
         .set('x-csrf-token', await csrf(owner))
         .attach('avatar', PNG, 'failed.png');
       assert.equal(failed.status, 502);

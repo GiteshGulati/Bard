@@ -16,25 +16,29 @@ import { uploadRoot } from './services/uploadService.js';
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const frontendDist = path.join(projectRoot, 'bard-react', 'dist');
 
+export function contentSecurityPolicy(production = isProd) {
+  if (!production) return false;
+  return {
+    directives: {
+      defaultSrc: ["'self'"],
+      // User-supplied images may come from any HTTP(S) host; scripts and other resources stay restricted.
+      imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http:'],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrcElem: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      scriptSrc: ["'self'"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+    },
+  };
+}
+
 export async function createApp() {
   const app = express();
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
 
   app.use(helmet({
-    contentSecurityPolicy: isProd
-      ? {
-        directives: {
-          defaultSrc: ["'self'"],
-          imgSrc: ["'self'", 'data:', 'blob:', 'https://images.unsplash.com', 'https://res.cloudinary.com', 'https://i.pravatar.cc'],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          styleSrcElem: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-          scriptSrc: ["'self'"],
-          connectSrc: ["'self'"],
-          fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        },
-      }
-      : false,
+    contentSecurityPolicy: contentSecurityPolicy(),
     crossOriginEmbedderPolicy: false,
   }));
 
